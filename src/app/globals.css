@@ -1,26 +1,208 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --font-inter: 'Inter', sans-serif;
+  --font-playfair: 'Playfair Display', serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply bg-cream text-earth-900 font-sans antialiased;
+  font-feature-settings: 'liga' 1, 'calt' 1;
+}
+
+/* Custom Scrollbar - Organic Theme */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-secondary-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-primary-400 rounded-full;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-primary-500;
+}
+
+/* Selection Color */
+::selection {
+  @apply bg-primary-200 text-earth-900;
+}
+
+::-moz-selection {
+  @apply bg-primary-200 text-earth-900;
+}
+
+/* Typography Styles */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  @apply font-serif font-semibold text-earth-900;
+}
+
+h1 {
+  @apply text-5xl md:text-6xl lg:text-7xl leading-tight;
+}
+
+h2 {
+  @apply text-4xl md:text-5xl lg:text-6xl leading-tight;
+}
+
+h3 {
+  @apply text-3xl md:text-4xl lg:text-5xl leading-snug;
+}
+
+h4 {
+  @apply text-2xl md:text-3xl leading-snug;
+}
+
+h5 {
+  @apply text-xl md:text-2xl leading-normal;
+}
+
+h6 {
+  @apply text-lg md:text-xl leading-normal;
+}
+
+p {
+  @apply text-base md:text-lg leading-relaxed text-earth-700;
+}
+
+/* Utility Classes */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-organic bg-clip-text text-transparent;
+  }
+
+  .container-custom {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-padding {
+    @apply py-16 md:py-24 lg:py-32;
+  }
+
+  .glass-effect {
+    @apply bg-white/80 backdrop-blur-md border border-white/20;
+  }
+
+  .organic-border {
+    border-radius: 2% 6% 5% 4% / 1% 1% 2% 4%;
+  }
+
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-2 hover:shadow-organic-lg;
+  }
+
+  .organic-shadow {
+    box-shadow: 0 8px 30px rgba(139, 157, 131, 0.12);
+  }
+}
+
+/* Custom Components */
+@layer components {
+  .btn-primary {
+    @apply bg-primary-500 text-white px-8 py-3 rounded-full font-medium hover:bg-primary-600 transition-all duration-300 hover:shadow-organic-lg hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary-200 text-earth-900 px-8 py-3 rounded-full font-medium hover:bg-secondary-300 transition-all duration-300 hover:shadow-organic hover:scale-105 active:scale-95;
+  }
+
+  .btn-outline {
+    @apply border-2 border-primary-500 text-primary-700 px-8 py-3 rounded-full font-medium hover:bg-primary-500 hover:text-white transition-all duration-300 hover:shadow-organic hover:scale-105 active:scale-95;
+  }
+
+  .input-organic {
+    @apply w-full px-4 py-3 rounded-2xl border-2 border-secondary-300 bg-white/50 backdrop-blur-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 transition-all duration-300 placeholder:text-earth-400;
+  }
+
+  .card-organic {
+    @apply bg-white rounded-3xl p-6 shadow-organic hover:shadow-organic-lg transition-all duration-500 border border-secondary-200/50;
+  }
+
+  .badge-organic {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-700 border border-primary-200;
+  }
+}
+
+/* Organic Leaf Pattern Background */
+.organic-pattern {
+  background-color: #fafaf8;
+  background-image:
+    radial-gradient(circle at 20% 50%, rgba(139, 157, 131, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(168, 181, 160, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, rgba(139, 115, 85, 0.02) 0%, transparent 50%);
+}
+
+/* Smooth Page Transitions */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+}
+
+/* Loading Spinner - Organic Style */
+@keyframes spin-organic {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.loader-organic {
+  border: 3px solid rgba(139, 157, 131, 0.2);
+  border-top-color: #8B9D83;
+  border-radius: 50%;
+  animation: spin-organic 0.8s linear infinite;
+}
+
+/* Focus visible for accessibility */
+*:focus-visible {
+  @apply outline-none ring-2 ring-primary-500 ring-offset-2;
+}
+
+/* Print styles */
+@media print {
+  body {
+    @apply bg-white;
+  }
+
+  .no-print {
+    display: none !important;
+  }
 }
