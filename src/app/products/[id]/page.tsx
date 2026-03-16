@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, use } from "react";
 import { motion } from "framer-motion";
 import {
     Star,
@@ -21,75 +21,263 @@ import Badge from "@/components/ui/Badge";
 import Card from "@/components/ui/Card";
 import Link from "next/link";
 
-// Mock Product Data
-const product = {
-    id: "1",
-    name: "Organic Quinoa Bowl Mix",
-    price: 24.99,
-    originalPrice: 32.99,
-    rating: 4.8,
-    reviews: 234,
-    description:
-        "Premium organic quinoa blend perfect for nutritious bowl meals. Sourced from certified organic farms with complete traceability. Rich in protein, fiber, and essential amino acids.",
-    images: [
-        "https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?w=800&q=80",
-        "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=800&q=80",
-        "https://images.unsplash.com/photo-1610390555228-6c73f4c012f8?w=800&q=80",
-        "https://images.unsplash.com/photo-1601814933824-fd0b574dd592?w=800&q=80",
-    ],
-    category: "Grains",
-    inStock: true,
-    stockCount: 45,
-    sku: "ORG-QNO-001",
-    batchNumber: "BATCH-2024-001",
-    qrCode: "QR-ORG-QNO-001-2024",
-    features: [
-        "100% Certified Organic",
-        "Non-GMO Verified",
-        "Gluten-Free",
-        "High in Protein",
-        "Complete Supply Chain Traceability",
-    ],
-    specifications: {
-        weight: "500g",
-        origin: "Peru",
-        certifications: ["USDA Organic", "EU Organic", "Fair Trade"],
-        shelfLife: "12 months",
+// Products Data
+const productsData = {
+    "1": {
+        id: "1",
+        name: "Organic Botanical Face Serum",
+        price: 42.99,
+        originalPrice: 54.99,
+        rating: 4.9,
+        reviews: 287,
+        description:
+            "Luxurious botanical face serum infused with organic plant extracts and essential oils. This lightweight formula absorbs quickly to deliver deep hydration and nourishment. Certified organic ingredients sourced from sustainable farms with complete traceability.",
+        images: [
+            "/images/product-face-serum.png",
+            "/images/product-face-serum.png",
+            "/images/product-face-serum.png",
+            "/images/product-face-serum.png",
+        ],
+        category: "Serums",
+        inStock: true,
+        stockCount: 45,
+        sku: "ORG-SER-001",
+        batchNumber: "BATCH-2024-001",
+        qrCode: "QR-ORG-SER-001-2024",
+        features: [
+            "100% Certified Organic",
+            "Cruelty-Free & Vegan",
+            "Paraben-Free",
+            "Rich in Antioxidants",
+            "Complete Supply Chain Traceability",
+        ],
+        specifications: {
+            weight: "30ml",
+            origin: "France",
+            certifications: ["USDA Organic", "EU Organic", "Ecocert"],
+            shelfLife: "12 months",
+        },
+    },
+    "2": {
+        id: "2",
+        name: "Natural Shea & Cocoa Body Butter",
+        price: 34.99,
+        originalPrice: 39.99,
+        rating: 4.8,
+        reviews: 215,
+        description:
+            "Rich and creamy body butter made with organic shea and cocoa butter. Deeply moisturizes and nourishes dry skin, leaving it soft and supple. Ethically sourced ingredients with full traceability from farm to jar.",
+        images: [
+            "/images/product-body-butter.png",
+            "/images/product-body-butter.png",
+            "/images/product-body-butter.png",
+            "/images/product-body-butter.png",
+        ],
+        category: "Moisturizers",
+        inStock: true,
+        stockCount: 38,
+        sku: "ORG-BB-002",
+        batchNumber: "BATCH-2024-002",
+        qrCode: "QR-ORG-BB-002-2024",
+        features: [
+            "100% Certified Organic",
+            "Fair Trade Certified",
+            "Non-GMO",
+            "Deep Moisturizing",
+            "Complete Supply Chain Traceability",
+        ],
+        specifications: {
+            weight: "200ml",
+            origin: "Ghana",
+            certifications: ["USDA Organic", "Fair Trade", "Ecocert"],
+            shelfLife: "18 months",
+        },
+    },
+    "3": {
+        id: "3",
+        name: "Aloe & Green Tea Facial Cleanser",
+        price: 28.99,
+        originalPrice: 35.99,
+        rating: 5.0,
+        reviews: 342,
+        description:
+            "Gentle foaming cleanser with organic aloe vera and green tea extract. Effectively removes impurities while maintaining skin's natural moisture balance. Certified organic ingredients with transparent sourcing.",
+        images: [
+            "/images/product-facial-cleanser.png",
+            "/images/product-facial-cleanser.png",
+            "/images/product-facial-cleanser.png",
+            "/images/product-facial-cleanser.png",
+        ],
+        category: "Cleansers",
+        inStock: true,
+        stockCount: 52,
+        sku: "ORG-CL-003",
+        batchNumber: "BATCH-2024-003",
+        qrCode: "QR-ORG-CL-003-2024",
+        features: [
+            "100% Certified Organic",
+            "pH Balanced",
+            "Sulfate-Free",
+            "Gentle Formula",
+            "Complete Supply Chain Traceability",
+        ],
+        specifications: {
+            weight: "150ml",
+            origin: "Japan",
+            certifications: ["USDA Organic", "EU Organic", "JAS Organic"],
+            shelfLife: "12 months",
+        },
+    },
+    "4": {
+        id: "4",
+        name: "Herbal Clay & Matcha Face Mask",
+        price: 38.99,
+        originalPrice: 44.99,
+        rating: 4.7,
+        reviews: 198,
+        description:
+            "Purifying face mask combining organic clay and matcha green tea. Draws out impurities, minimizes pores, and revitalizes skin. Sustainably sourced ingredients with complete farm-to-face traceability.",
+        images: [
+            "/images/product-face-mask.png",
+            "/images/product-face-mask.png",
+            "/images/product-face-mask.png",
+            "/images/product-face-mask.png",
+        ],
+        category: "Masks",
+        inStock: true,
+        stockCount: 29,
+        sku: "ORG-MSK-004",
+        batchNumber: "BATCH-2024-004",
+        qrCode: "QR-ORG-MSK-004-2024",
+        features: [
+            "100% Certified Organic",
+            "Detoxifying Formula",
+            "Natural Clay",
+            "Antioxidant-Rich",
+            "Complete Supply Chain Traceability",
+        ],
+        specifications: {
+            weight: "100g",
+            origin: "Japan",
+            certifications: ["USDA Organic", "EU Organic", "Cosmos Organic"],
+            shelfLife: "24 months",
+        },
+    },
+    "5": {
+        id: "5",
+        name: "Botanical Eye Cream",
+        price: 45.99,
+        originalPrice: 54.99,
+        rating: 4.8,
+        reviews: 156,
+        description:
+            "Nourishing eye cream with organic botanical extracts. Reduces the appearance of fine lines and dark circles while hydrating delicate eye area. Premium organic ingredients with verified traceability.",
+        images: [
+            "/images/product-eye-cream.png",
+            "/images/product-eye-cream.png",
+            "/images/product-eye-cream.png",
+            "/images/product-eye-cream.png",
+        ],
+        category: "Eye Care",
+        inStock: false,
+        stockCount: 0,
+        sku: "ORG-EYE-005",
+        batchNumber: "BATCH-2024-005",
+        qrCode: "QR-ORG-EYE-005-2024",
+        features: [
+            "100% Certified Organic",
+            "Anti-Aging Formula",
+            "Caffeine-Infused",
+            "Lightweight Texture",
+            "Complete Supply Chain Traceability",
+        ],
+        specifications: {
+            weight: "15ml",
+            origin: "Switzerland",
+            certifications: ["USDA Organic", "EU Organic", "Bio Suisse"],
+            shelfLife: "12 months",
+        },
+    },
+    "6": {
+        id: "6",
+        name: "Organic Night Cream",
+        price: 52.99,
+        originalPrice: 64.99,
+        rating: 4.9,
+        reviews: 223,
+        description:
+            "Intensive overnight moisturizer with organic oils and plant extracts. Repairs and regenerates skin while you sleep. Premium certified organic ingredients with full supply chain transparency.",
+        images: [
+            "/images/product-night-cream.png",
+            "/images/product-night-cream.png",
+            "/images/product-night-cream.png",
+            "/images/product-night-cream.png",
+        ],
+        category: "Night Care",
+        inStock: true,
+        stockCount: 34,
+        sku: "ORG-NC-006",
+        batchNumber: "BATCH-2024-006",
+        qrCode: "QR-ORG-NC-006-2024",
+        features: [
+            "100% Certified Organic",
+            "Regenerating Formula",
+            "Rich in Vitamins",
+            "Night Repair Complex",
+            "Complete Supply Chain Traceability",
+        ],
+        specifications: {
+            weight: "50ml",
+            origin: "France",
+            certifications: ["USDA Organic", "EU Organic", "Cosmebio"],
+            shelfLife: "12 months",
+        },
     },
 };
 
-const relatedProducts = [
-    {
-        id: "2",
-        name: "Premium Matcha Powder",
-        price: 34.99,
-        image: "https://images.unsplash.com/photo-1515823064-d6e0c04616a7?w=300&q=80",
-        rating: 4.9,
-    },
-    {
-        id: "3",
-        name: "Raw Honey Collection",
-        price: 28.99,
-        image: "https://images.unsplash.com/photo-1587049352846-4a222e784794?w=300&q=80",
-        rating: 5.0,
-    },
-    {
-        id: "4",
-        name: "Superfood Smoothie Mix",
-        price: 29.99,
-        image: "https://images.unsplash.com/photo-1610348725531-843dff563e2c?w=300&q=80",
-        rating: 4.7,
-    },
-];
 
-export default function ProductDetailPage() {
+export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    // Unwrap params Promise using React.use() for Next.js 15
+    const { id } = use(params);
+
     const [selectedImage, setSelectedImage] = useState(0);
     const [quantity, setQuantity] = useState(1);
     const [isWishlisted, setIsWishlisted] = useState(false);
 
-    const discount = Math.round(
-        ((product.originalPrice - product.price) / product.originalPrice) * 100
-    );
+    // Get product from productsData based on ID
+    const product = productsData[id as keyof typeof productsData];
+
+    // If product not found, show error or redirect
+    if (!product) {
+        return (
+            <div className="min-h-screen bg-gradient-cream flex items-center justify-center">
+                <div className="text-center">
+                    <h1 className="text-4xl font-bold text-earth-900 mb-4">Product Not Found</h1>
+                    <p className="text-earth-600 mb-8">The product you're looking for doesn't exist.</p>
+                    <Link href="/products">
+                        <Button>Back to Products</Button>
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
+    // Get related products (exclude current product)
+    const relatedProducts = Object.values(productsData)
+        .filter((p) => p.id !== product.id)
+        .slice(0, 3)
+        .map((p) => ({
+            id: p.id,
+            name: p.name,
+            price: p.price,
+            image: p.images[0],
+            rating: p.rating,
+        }));
+
+    const discount = product.originalPrice
+        ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+        : 0;
+
 
     return (
         <div className="min-h-screen bg-gradient-cream">
@@ -153,8 +341,8 @@ export default function ProductDetailPage() {
                                     key={index}
                                     onClick={() => setSelectedImage(index)}
                                     className={`aspect-square rounded-xl overflow-hidden transition-all ${selectedImage === index
-                                            ? "ring-4 ring-primary-500 scale-105"
-                                            : "opacity-70 hover:opacity-100"
+                                        ? "ring-4 ring-primary-500 scale-105"
+                                        : "opacity-70 hover:opacity-100"
                                         }`}
                                 >
                                     <img
@@ -188,8 +376,8 @@ export default function ProductDetailPage() {
                                     <Star
                                         key={i}
                                         className={`w-5 h-5 ${i < Math.floor(product.rating)
-                                                ? "fill-amber-400 text-amber-400"
-                                                : "text-gray-300"
+                                            ? "fill-amber-400 text-amber-400"
+                                            : "text-gray-300"
                                             }`}
                                     />
                                 ))}
