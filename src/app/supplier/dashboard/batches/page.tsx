@@ -129,7 +129,7 @@ export default function BatchesPage() {
                 .split("T")[0],
             status: "pending" as const,
             certificateCount: 0,
-            certificateStatus: "expired" as const,
+            certificateStatus: "valid" as const,
         };
 
         setBatches([batch, ...batches]);

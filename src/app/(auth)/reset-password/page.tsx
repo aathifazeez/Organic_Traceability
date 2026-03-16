@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { motion } from "framer-motion";
 import { Lock, Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react";
 import Link from "next/link";
@@ -9,7 +9,7 @@ import AuthLayout from "@/components/auth/AuthLayout";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const token = searchParams.get("token");
@@ -253,5 +253,19 @@ export default function ResetPasswordPage() {
                 </motion.div>
             )}
         </AuthLayout>
+    );
+}
+
+export default function ResetPasswordPage() {
+    return (
+        <Suspense fallback={
+            <AuthLayout title="Reset Password" subtitle="Loading...">
+                <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+                </div>
+            </AuthLayout>
+        }>
+            <ResetPasswordContent />
+        </Suspense>
     );
 }
