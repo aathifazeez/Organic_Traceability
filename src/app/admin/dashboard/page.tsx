@@ -10,6 +10,10 @@ import {
     CheckCircle,
     Clock,
     Activity,
+    Beaker,
+    QrCode,
+    AlertCircle,
+    Plus,
 } from "lucide-react";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import StatCard from "@/components/admin/StatCard";
@@ -32,6 +36,14 @@ const systemStats = {
     qrScans: 8934,
     certificatesValid: 156,
     certificatesExpiring: 12,
+};
+
+// Manufacturing stats (merged from manufacturer dashboard)
+const manufacturingStats = {
+    totalProductBatches: 28,
+    activeListings: 15,
+    qrCodesGenerated: 28,
+    pendingApproval: 3,
 };
 
 const recentActivity = [
@@ -77,6 +89,72 @@ const recentActivity = [
     },
 ];
 
+// Recent product batches (merged from manufacturer dashboard)
+const recentProducts = [
+    {
+        id: "1",
+        name: "Organic Rose Face Cream",
+        batchNumber: "PROD-2024-001",
+        ingredients: 5,
+        qrGenerated: true,
+        listed: true,
+        createdDate: "2024-01-28",
+        status: "active",
+    },
+    {
+        id: "2",
+        name: "Vitamin C Brightening Serum",
+        batchNumber: "PROD-2024-002",
+        ingredients: 4,
+        qrGenerated: true,
+        listed: true,
+        createdDate: "2024-01-26",
+        status: "active",
+    },
+    {
+        id: "3",
+        name: "Hydrating Face Mask",
+        batchNumber: "PROD-2024-003",
+        ingredients: 6,
+        qrGenerated: false,
+        listed: false,
+        createdDate: "2024-01-25",
+        status: "pending",
+    },
+];
+
+// Manufacturing activity (merged from manufacturer dashboard)
+const manufacturingActivity = [
+    {
+        id: "1",
+        action: "QR Code Generated",
+        product: "Organic Rose Face Cream",
+        timestamp: "2 hours ago",
+        type: "qr",
+    },
+    {
+        id: "2",
+        action: "Product Listed",
+        product: "Vitamin C Brightening Serum",
+        timestamp: "5 hours ago",
+        type: "listing",
+    },
+    {
+        id: "3",
+        action: "Batch Created",
+        product: "Hydrating Face Mask",
+        timestamp: "1 day ago",
+        type: "batch",
+    },
+    {
+        id: "4",
+        action: "Ingredients Linked",
+        product: "Anti-Aging Night Cream",
+        timestamp: "2 days ago",
+        type: "ingredient",
+    },
+];
+
 const pendingApprovals = [
     {
         id: "1",
@@ -113,7 +191,7 @@ export default function AdminDashboardPage() {
         <div className="flex min-h-screen bg-gradient-cream">
             <AdminSidebar />
 
-            <main className="flex-1 overflow-auto">
+            <main className="flex-1 lg:ml-0 min-h-screen overflow-auto">
                 <div className="container-custom py-8">
                     {/* Header */}
                     <motion.div
@@ -121,15 +199,26 @@ export default function AdminDashboardPage() {
                         animate={{ opacity: 1, y: 0 }}
                         className="mb-8"
                     >
-                        <h1 className="font-serif font-bold text-4xl text-earth-900 mb-2">
-                            Admin Dashboard
-                        </h1>
-                        <p className="text-earth-600">
-                            Monitor and manage the entire OrganicTrace platform
-                        </p>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div>
+                                <h1 className="font-serif font-bold text-4xl text-earth-900 mb-2">
+                                    Admin Dashboard
+                                </h1>
+                                <p className="text-earth-600">
+                                    Monitor and manage the entire OrganicTrace platform
+                                </p>
+                            </div>
+                            <div className="flex gap-3">
+                                <Link href="/admin/dashboard/products/create">
+                                    <Button leftIcon={<Plus className="w-5 h-5" />}>
+                                        Create Product Batch
+                                    </Button>
+                                </Link>
+                            </div>
+                        </div>
                     </motion.div>
 
-                    {/* Stats Grid */}
+                    {/* Platform Stats Grid */}
                     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                         <StatCard
                             title="Total Users"
@@ -168,6 +257,78 @@ export default function AdminDashboardPage() {
                             delay={0.3}
                         />
                     </div>
+
+                    {/* Manufacturing Stats (merged from manufacturer) */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="mb-8"
+                    >
+                        <h2 className="font-serif font-bold text-2xl text-earth-900 mb-4">
+                            Manufacturing Overview
+                        </h2>
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {[
+                                {
+                                    title: "Product Batches",
+                                    value: manufacturingStats.totalProductBatches,
+                                    icon: Beaker,
+                                    color: "bg-blue-100 text-blue-600",
+                                    trend: "+5 this month",
+                                },
+                                {
+                                    title: "Active Listings",
+                                    value: manufacturingStats.activeListings,
+                                    icon: ShoppingBag,
+                                    color: "bg-green-100 text-green-600",
+                                    trend: "+3 this week",
+                                },
+                                {
+                                    title: "QR Codes",
+                                    value: manufacturingStats.qrCodesGenerated,
+                                    icon: QrCode,
+                                    color: "bg-purple-100 text-purple-600",
+                                    trend: "100% coverage",
+                                },
+                                {
+                                    title: "Pending",
+                                    value: manufacturingStats.pendingApproval,
+                                    icon: AlertCircle,
+                                    color: "bg-amber-100 text-amber-600",
+                                    trend: "Action needed",
+                                },
+                            ].map((stat, index) => {
+                                const Icon = stat.icon;
+                                return (
+                                    <motion.div
+                                        key={stat.title}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.3 + index * 0.1 }}
+                                    >
+                                        <Card hover padding="lg">
+                                            <div className="flex items-start justify-between mb-4">
+                                                <div
+                                                    className={`w-12 h-12 rounded-xl ${stat.color} flex items-center justify-center`}
+                                                >
+                                                    <Icon className="w-6 h-6" />
+                                                </div>
+                                                <div className="flex items-center gap-1 text-sm font-medium text-green-600">
+                                                    <TrendingUp className="w-4 h-4" />
+                                                    {stat.trend}
+                                                </div>
+                                            </div>
+                                            <p className="text-sm text-earth-600 mb-1">{stat.title}</p>
+                                            <p className="text-3xl font-bold text-earth-900">
+                                                {stat.value}
+                                            </p>
+                                        </Card>
+                                    </motion.div>
+                                );
+                            })}
+                        </div>
+                    </motion.div>
 
                     {/* Secondary Stats */}
                     <div className="grid md:grid-cols-3 gap-6 mb-8">
@@ -244,8 +405,8 @@ export default function AdminDashboardPage() {
                                             </span>
                                             <div
                                                 className={`w-2 h-2 rounded-full ${item.status === "good"
-                                                        ? "bg-green-600"
-                                                        : "bg-amber-600"
+                                                    ? "bg-green-600"
+                                                    : "bg-amber-600"
                                                     }`}
                                             />
                                         </div>
@@ -254,6 +415,120 @@ export default function AdminDashboardPage() {
                             </div>
                         </Card>
                     </div>
+
+                    {/* Recent Product Batches (merged from manufacturer) */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
+                        className="mb-8"
+                    >
+                        <Card padding="lg">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="font-serif font-bold text-2xl text-earth-900">
+                                    Recent Product Batches
+                                </h2>
+                                <Link href="/admin/dashboard/products">
+                                    <Button variant="ghost" size="sm">
+                                        View All
+                                    </Button>
+                                </Link>
+                            </div>
+
+                            <div className="space-y-4">
+                                {recentProducts.map((product) => (
+                                    <div
+                                        key={product.id}
+                                        className="p-4 border-2 border-secondary-200 rounded-xl hover:border-primary-300 transition-colors"
+                                    >
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div>
+                                                <h3 className="font-semibold text-lg text-earth-900 mb-1">
+                                                    {product.name}
+                                                </h3>
+                                                <p className="text-sm text-earth-600">
+                                                    Batch: {product.batchNumber}
+                                                </p>
+                                            </div>
+                                            <Badge
+                                                variant={
+                                                    product.status === "active" ? "success" : "warning"
+                                                }
+                                            >
+                                                {product.status}
+                                            </Badge>
+                                        </div>
+
+                                        <div className="grid grid-cols-3 gap-4 mb-3">
+                                            <div>
+                                                <p className="text-xs text-earth-600 mb-1">
+                                                    Ingredients
+                                                </p>
+                                                <p className="font-semibold text-earth-900">
+                                                    {product.ingredients}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-earth-600 mb-1">
+                                                    QR Code
+                                                </p>
+                                                <div className="flex items-center gap-1">
+                                                    {product.qrGenerated ? (
+                                                        <>
+                                                            <CheckCircle className="w-4 h-4 text-green-600" />
+                                                            <span className="text-sm font-medium text-green-600">
+                                                                Generated
+                                                            </span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <AlertCircle className="w-4 h-4 text-amber-600" />
+                                                            <span className="text-sm font-medium text-amber-600">
+                                                                Pending
+                                                            </span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-earth-600 mb-1">Listed</p>
+                                                <div className="flex items-center gap-1">
+                                                    {product.listed ? (
+                                                        <>
+                                                            <CheckCircle className="w-4 h-4 text-green-600" />
+                                                            <span className="text-sm font-medium text-green-600">
+                                                                Yes
+                                                            </span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <AlertCircle className="w-4 h-4 text-earth-400" />
+                                                            <span className="text-sm font-medium text-earth-600">
+                                                                No
+                                                            </span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-3 border-t border-secondary-200 flex gap-2">
+                                            <Link
+                                                href={`/admin/dashboard/products/${product.id}`}
+                                            >
+                                                <Button variant="outline" size="sm">
+                                                    View Details
+                                                </Button>
+                                            </Link>
+                                            {!product.qrGenerated && (
+                                                <Button size="sm">Generate QR</Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
+                    </motion.div>
 
                     <div className="grid lg:grid-cols-3 gap-8">
                         {/* Recent Activity */}
@@ -308,8 +583,10 @@ export default function AdminDashboardPage() {
                             </Card>
                         </div>
 
-                        {/* Pending Approvals */}
-                        <div className="lg:col-span-1">
+                        {/* Right Column: Approvals + Quick Actions + Manufacturing Activity */}
+                        <div className="lg:col-span-1 space-y-6">
+
+                            {/* Pending Approvals */}
                             <Card padding="lg">
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="font-serif font-bold text-xl text-earth-900">
@@ -358,6 +635,54 @@ export default function AdminDashboardPage() {
                                     </Button>
                                 </Link>
                             </Card>
+
+                            {/* Manufacturing Activity (merged from manufacturer) */}
+                            <motion.div
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.5 }}
+                            >
+                                <Card padding="lg">
+                                    <h2 className="font-serif font-bold text-xl text-earth-900 mb-6">
+                                        Manufacturing Activity
+                                    </h2>
+
+                                    <div className="space-y-4">
+                                        {manufacturingActivity.map((activity) => {
+                                            const iconConfig = {
+                                                qr: { icon: QrCode, color: "text-purple-600" },
+                                                listing: { icon: ShoppingBag, color: "text-green-600" },
+                                                batch: { icon: Beaker, color: "text-blue-600" },
+                                                ingredient: { icon: Package, color: "text-amber-600" },
+                                            };
+
+                                            const config = iconConfig[activity.type as keyof typeof iconConfig];
+                                            const Icon = config.icon;
+
+                                            return (
+                                                <div key={activity.id} className="flex gap-3">
+                                                    <div
+                                                        className="w-10 h-10 rounded-lg bg-secondary-100 flex items-center justify-center flex-shrink-0"
+                                                    >
+                                                        <Icon className={`w-5 h-5 ${config.color}`} />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-medium text-earth-900">
+                                                            {activity.action}
+                                                        </p>
+                                                        <p className="text-sm text-earth-600 truncate">
+                                                            {activity.product}
+                                                        </p>
+                                                        <p className="text-xs text-earth-500 mt-1">
+                                                            {activity.timestamp}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </Card>
+                            </motion.div>
                         </div>
                     </div>
                 </div>

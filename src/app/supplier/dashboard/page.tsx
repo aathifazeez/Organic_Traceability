@@ -112,7 +112,7 @@ export default function SupplierDashboardPage() {
         <div className="flex min-h-screen bg-gradient-cream">
             <SupplierSidebar />
 
-            <main className="flex-1 overflow-auto">
+            <main className="flex-1 lg:ml-0 min-h-screen overflow-auto">
                 <div className="container-custom py-8">
                     {/* Header */}
                     <motion.div
@@ -312,30 +312,6 @@ export default function SupplierDashboardPage() {
                                             Manage Certificates
                                         </Button>
                                     </Link>
-                                </Card>
-
-                                {/* Quick Actions */}
-                                <Card padding="lg" className="mt-6">
-                                    <h3 className="font-semibold text-earth-900 mb-4">
-                                        Quick Actions
-                                    </h3>
-                                    <div className="space-y-2">
-                                        <Link href="/supplier/dashboard/batches">
-                                            <button className="w-full text-left px-4 py-3 bg-secondary-50 hover:bg-secondary-100 rounded-xl transition-colors text-sm font-medium text-earth-900">
-                                                Create New Batch
-                                            </button>
-                                        </Link>
-                                        <Link href="/supplier/dashboard/certificates">
-                                            <button className="w-full text-left px-4 py-3 bg-secondary-50 hover:bg-secondary-100 rounded-xl transition-colors text-sm font-medium text-earth-900">
-                                                Upload Certificate
-                                            </button>
-                                        </Link>
-                                        <Link href="/supplier/dashboard/analytics">
-                                            <button className="w-full text-left px-4 py-3 bg-secondary-50 hover:bg-secondary-100 rounded-xl transition-colors text-sm font-medium text-earth-900">
-                                                View Analytics
-                                            </button>
-                                        </Link>
-                                    </div>
                                 </Card>
                             </motion.div>
                         </div>
