@@ -7,6 +7,8 @@ export interface CartItem {
   quantity: number;
   image: string;
   unitsAvailable: number;
+  variant?: string;
+  skinType?: string;
 }
 
 export const getCart = (): CartItem[] => {

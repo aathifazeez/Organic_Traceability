@@ -64,7 +64,7 @@ export default function CartItem({
                             </h3>
                             <p className="text-sm text-earth-600 mb-2">{item.variant}</p>
                             <Badge variant="info" size="sm">
-                                For {item.skinType} Skin
+                                {item.skinType}
                             </Badge>
                         </div>
                         <button

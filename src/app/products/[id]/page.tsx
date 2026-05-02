@@ -190,6 +190,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             quantity,
             image: imageUrl,
             unitsAvailable: product.unitsRemaining,
+            variant: product.category ?? "Standard",
+            skinType: product.skinType ?? "All skin types",
         });
         setAddedToCart(true);
         setTimeout(() => setAddedToCart(false), 2000);

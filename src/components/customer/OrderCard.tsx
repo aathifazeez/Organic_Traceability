@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Package, Truck, CheckCircle, Clock, Eye } from "lucide-react";
+import { Package, Truck, CheckCircle, Clock, Eye, Ban } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
@@ -11,7 +11,7 @@ interface OrderCardProps {
         id: string;
         orderNumber: string;
         date: string;
-        status: "processing" | "shipped" | "delivered" | "pending";
+        status: "processing" | "shipped" | "delivered" | "pending" | "cancelled";
         total: number;
         items: number;
         estimatedDelivery?: string;
@@ -49,6 +49,13 @@ export default function OrderCard({ order }: OrderCardProps) {
             label: "Delivered",
             bgColor: "bg-green-50",
             textColor: "text-green-700",
+        },
+        cancelled: {
+            icon: Ban,
+            color: "warning",
+            label: "Cancelled",
+            bgColor: "bg-earth-50",
+            textColor: "text-earth-600",
         },
     };
 
@@ -107,7 +114,9 @@ export default function OrderCard({ order }: OrderCardProps) {
                         </div>
 
                         {/* Progress Indicator */}
-                        {order.status !== "delivered" && order.estimatedDelivery && (
+                        {order.status !== "delivered" &&
+                            order.status !== "cancelled" &&
+                            order.estimatedDelivery && (
                             <div className={`p-4 ${config.bgColor} rounded-xl mb-4`}>
                                 <div className="flex items-center justify-between mb-2">
                                     <p className={`text-sm font-medium ${config.textColor}`}>

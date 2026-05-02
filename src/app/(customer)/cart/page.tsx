@@ -36,6 +36,8 @@ export default function CartPage() {
     const mappedItems = cartItems.map((item) => ({
         id: item.productId,
         name: item.name,
+        variant: item.variant ?? "Standard",
+        skinType: item.skinType ?? "All skin types",
         price: item.price,
         quantity: item.quantity,
         image: item.image,
