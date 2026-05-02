@@ -1,15 +1,22 @@
 require('dotenv').config();
-const appModule = require('./src/app');
+const appModule = require('./src/app.js');
 const connectDB = require('./src/config/database');
 const { initScheduledJobs } = require('./src/services/scheduledJobs');
 
 const PORT = process.env.PORT || 5001;
 const NODE_ENV = process.env.NODE_ENV || 'development';
-const app = appModule?.default || appModule;
+const appCandidates = [
+    appModule,
+    appModule?.default,
+    appModule?.app,
+    appModule?.default?.app,
+    appModule?.default?.default,
+];
+const app = appCandidates.find((candidate) => candidate && typeof candidate.listen === 'function');
 
 if (!app || typeof app.listen !== 'function') {
     throw new TypeError(
-        'Invalid Express app export from ./src/app. Expected an Express app instance with listen().'
+        `Invalid Express app export from ./src/app.js. Received: ${typeof appModule}`
     );
 }
 
