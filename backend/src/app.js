@@ -29,8 +29,24 @@ app.set('trust proxy', 1);
 app.use(helmet());
 
 // CORS configuration
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:3000')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
 const corsOptions = {
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+        // Allow non-browser clients and same-origin calls
+        if (!origin) return callback(null, true);
+
+        // Allow explicit origins from env (supports comma-separated list)
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+
+        // Allow Vercel preview and production app domains by default
+        if (/^https:\/\/.*\.vercel\.app$/.test(origin)) return callback(null, true);
+
+        return callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     optionsSuccessStatus: 200,
 };

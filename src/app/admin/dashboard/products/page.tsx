@@ -15,7 +15,7 @@ import Badge from "@/components/ui/Badge";
 import Select from "@/components/ui/Select";
 import { apiRequest } from "@/lib/auth";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/_/backend/api/v1";
 
 const CATEGORY_OPTIONS = [
     { value: "face-cream", label: "Face Cream" },

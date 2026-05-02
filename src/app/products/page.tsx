@@ -18,7 +18,7 @@ import Select from "@/components/ui/Select";
 import Badge from "@/components/ui/Badge";
 import Link from "next/link";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/_/backend/api/v1";
 
 const categories = [
     "All Products",

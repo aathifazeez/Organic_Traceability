@@ -13,7 +13,7 @@ import Badge from "@/components/ui/Badge";
 import { getCart, clearCart, CartItem } from "@/lib/cart";
 import { getAuthToken, getCurrentUser } from "@/lib/auth";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/_/backend/api/v1";
 
 const steps = [
     { id: 1, name: "Shipping", icon: MapPin },
