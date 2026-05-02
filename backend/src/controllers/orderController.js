@@ -1,6 +1,6 @@
 const Order = require('../models/Order');
 const ProductBatch = require('../models/ProductBatch');
-const User = require('../models/user');
+const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
 const { successResponse, errorResponse, paginatedResponse } = require('../utils/responses');
 const { HTTP_STATUS, PAGINATION, ORDER_STATUS } = require('../config/constants');

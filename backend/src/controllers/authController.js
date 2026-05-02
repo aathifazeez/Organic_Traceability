@@ -1,4 +1,4 @@
-const User = require('../models/user');
+const User = require('../models/User');
 const { successResponse, errorResponse } = require('../utils/responses');
 const { HTTP_STATUS, USER_ROLES, ACCOUNT_STATUS } = require('../config/constants');
 const crypto = require('crypto');

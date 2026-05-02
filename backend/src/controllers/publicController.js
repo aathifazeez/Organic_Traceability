@@ -1,4 +1,4 @@
-const User = require('../models/user');
+const User = require('../models/User');
 const Certificate = require('../models/Certificate');
 const { successResponse, errorResponse } = require('../utils/responses');
 const { HTTP_STATUS } = require('../config/constants');

@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const User = require('../models/user');
+const User = require('../models/User');
 const Certificate = require('../models/Certificate');
 const IngredientBatch = require('../models/IngredientBatch');
 const ProductBatch = require('../models/ProductBatch');

@@ -1,6 +1,6 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
 const connectDB = require('../config/database');
-const User = require('../models/user');
+const User = require('../models/User');
 const IngredientBatch = require('../models/IngredientBatch');
 const Certificate = require('../models/Certificate');
 const ProductBatch = require('../models/ProductBatch');
