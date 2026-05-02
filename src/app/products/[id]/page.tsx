@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, useEffect, use } from "react";
 import { motion } from "framer-motion";
 import {
-    Star,
     ShoppingCart,
     Heart,
     Share2,
@@ -15,269 +14,239 @@ import {
     Minus,
     Plus,
     ChevronLeft,
+    Loader2,
+    Leaf,
+    Download,
+    Scan,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import Card from "@/components/ui/Card";
 import Link from "next/link";
+import { addToCart } from "@/lib/cart";
+import { getProductBySlug, isStaticSlug } from "@/lib/products.config";
 
-// Products Data
-const productsData = {
-    "1": {
-        id: "1",
-        name: "Organic Botanical Face Serum",
-        price: 42.99,
-        originalPrice: 54.99,
-        rating: 4.9,
-        reviews: 287,
-        description:
-            "Luxurious botanical face serum infused with organic plant extracts and essential oils. This lightweight formula absorbs quickly to deliver deep hydration and nourishment. Certified organic ingredients sourced from sustainable farms with complete traceability.",
-        images: [
-            "/images/product-face-serum.png",
-            "/images/product-face-serum.png",
-            "/images/product-face-serum.png",
-            "/images/product-face-serum.png",
-        ],
-        category: "Serums",
-        inStock: true,
-        stockCount: 45,
-        sku: "ORG-SER-001",
-        batchNumber: "BATCH-2024-001",
-        qrCode: "QR-ORG-SER-001-2024",
-        features: [
-            "100% Certified Organic",
-            "Cruelty-Free & Vegan",
-            "Paraben-Free",
-            "Rich in Antioxidants",
-            "Complete Supply Chain Traceability",
-        ],
-        specifications: {
-            weight: "30ml",
-            origin: "France",
-            certifications: ["USDA Organic", "EU Organic", "Ecocert"],
-            shelfLife: "12 months",
-        },
-    },
-    "2": {
-        id: "2",
-        name: "Natural Shea & Cocoa Body Butter",
-        price: 34.99,
-        originalPrice: 39.99,
-        rating: 4.8,
-        reviews: 215,
-        description:
-            "Rich and creamy body butter made with organic shea and cocoa butter. Deeply moisturizes and nourishes dry skin, leaving it soft and supple. Ethically sourced ingredients with full traceability from farm to jar.",
-        images: [
-            "/images/product-body-butter.png",
-            "/images/product-body-butter.png",
-            "/images/product-body-butter.png",
-            "/images/product-body-butter.png",
-        ],
-        category: "Moisturizers",
-        inStock: true,
-        stockCount: 38,
-        sku: "ORG-BB-002",
-        batchNumber: "BATCH-2024-002",
-        qrCode: "QR-ORG-BB-002-2024",
-        features: [
-            "100% Certified Organic",
-            "Fair Trade Certified",
-            "Non-GMO",
-            "Deep Moisturizing",
-            "Complete Supply Chain Traceability",
-        ],
-        specifications: {
-            weight: "200ml",
-            origin: "Ghana",
-            certifications: ["USDA Organic", "Fair Trade", "Ecocert"],
-            shelfLife: "18 months",
-        },
-    },
-    "3": {
-        id: "3",
-        name: "Aloe & Green Tea Facial Cleanser",
-        price: 28.99,
-        originalPrice: 35.99,
-        rating: 5.0,
-        reviews: 342,
-        description:
-            "Gentle foaming cleanser with organic aloe vera and green tea extract. Effectively removes impurities while maintaining skin's natural moisture balance. Certified organic ingredients with transparent sourcing.",
-        images: [
-            "/images/product-facial-cleanser.png",
-            "/images/product-facial-cleanser.png",
-            "/images/product-facial-cleanser.png",
-            "/images/product-facial-cleanser.png",
-        ],
-        category: "Cleansers",
-        inStock: true,
-        stockCount: 52,
-        sku: "ORG-CL-003",
-        batchNumber: "BATCH-2024-003",
-        qrCode: "QR-ORG-CL-003-2024",
-        features: [
-            "100% Certified Organic",
-            "pH Balanced",
-            "Sulfate-Free",
-            "Gentle Formula",
-            "Complete Supply Chain Traceability",
-        ],
-        specifications: {
-            weight: "150ml",
-            origin: "Japan",
-            certifications: ["USDA Organic", "EU Organic", "JAS Organic"],
-            shelfLife: "12 months",
-        },
-    },
-    "4": {
-        id: "4",
-        name: "Herbal Clay & Matcha Face Mask",
-        price: 38.99,
-        originalPrice: 44.99,
-        rating: 4.7,
-        reviews: 198,
-        description:
-            "Purifying face mask combining organic clay and matcha green tea. Draws out impurities, minimizes pores, and revitalizes skin. Sustainably sourced ingredients with complete farm-to-face traceability.",
-        images: [
-            "/images/product-face-mask.png",
-            "/images/product-face-mask.png",
-            "/images/product-face-mask.png",
-            "/images/product-face-mask.png",
-        ],
-        category: "Masks",
-        inStock: true,
-        stockCount: 29,
-        sku: "ORG-MSK-004",
-        batchNumber: "BATCH-2024-004",
-        qrCode: "QR-ORG-MSK-004-2024",
-        features: [
-            "100% Certified Organic",
-            "Detoxifying Formula",
-            "Natural Clay",
-            "Antioxidant-Rich",
-            "Complete Supply Chain Traceability",
-        ],
-        specifications: {
-            weight: "100g",
-            origin: "Japan",
-            certifications: ["USDA Organic", "EU Organic", "Cosmos Organic"],
-            shelfLife: "24 months",
-        },
-    },
-    "5": {
-        id: "5",
-        name: "Botanical Eye Cream",
-        price: 45.99,
-        originalPrice: 54.99,
-        rating: 4.8,
-        reviews: 156,
-        description:
-            "Nourishing eye cream with organic botanical extracts. Reduces the appearance of fine lines and dark circles while hydrating delicate eye area. Premium organic ingredients with verified traceability.",
-        images: [
-            "/images/product-eye-cream.png",
-            "/images/product-eye-cream.png",
-            "/images/product-eye-cream.png",
-            "/images/product-eye-cream.png",
-        ],
-        category: "Eye Care",
-        inStock: false,
-        stockCount: 0,
-        sku: "ORG-EYE-005",
-        batchNumber: "BATCH-2024-005",
-        qrCode: "QR-ORG-EYE-005-2024",
-        features: [
-            "100% Certified Organic",
-            "Anti-Aging Formula",
-            "Caffeine-Infused",
-            "Lightweight Texture",
-            "Complete Supply Chain Traceability",
-        ],
-        specifications: {
-            weight: "15ml",
-            origin: "Switzerland",
-            certifications: ["USDA Organic", "EU Organic", "Bio Suisse"],
-            shelfLife: "12 months",
-        },
-    },
-    "6": {
-        id: "6",
-        name: "Organic Night Cream",
-        price: 52.99,
-        originalPrice: 64.99,
-        rating: 4.9,
-        reviews: 223,
-        description:
-            "Intensive overnight moisturizer with organic oils and plant extracts. Repairs and regenerates skin while you sleep. Premium certified organic ingredients with full supply chain transparency.",
-        images: [
-            "/images/product-night-cream.png",
-            "/images/product-night-cream.png",
-            "/images/product-night-cream.png",
-            "/images/product-night-cream.png",
-        ],
-        category: "Night Care",
-        inStock: true,
-        stockCount: 34,
-        sku: "ORG-NC-006",
-        batchNumber: "BATCH-2024-006",
-        qrCode: "QR-ORG-NC-006-2024",
-        features: [
-            "100% Certified Organic",
-            "Regenerating Formula",
-            "Rich in Vitamins",
-            "Night Repair Complex",
-            "Complete Supply Chain Traceability",
-        ],
-        specifications: {
-            weight: "50ml",
-            origin: "France",
-            certifications: ["USDA Organic", "EU Organic", "Cosmebio"],
-            shelfLife: "12 months",
-        },
-    },
-};
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 
+// Pick the right fallback image based on product name
+function getFallbackImage(name: string): string {
+    const n = (name || "").toLowerCase();
+    if (n.includes("coffee") || n.includes("scrub")) return "/images/product-coffee-scrub.png";
+    if (n.includes("serum") || n.includes("niacinamide") || n.includes("glimmer")) return "/images/product-serum.png";
+    if (n.includes("soap") || n.includes("lavender") || n.includes("berry")) return "/images/product-soap.png";
+    if (n.includes("cream") || n.includes("vivid") || n.includes("glow")) return "/images/product-face-cream.png";
+    return "/images/product-serum.png";
+}
+
+// Ingredient lists per product — matched by product name keywords
+const PRODUCT_INGREDIENTS: { keywords: string[]; ingredients: string[] }[] = [
+    {
+        keywords: ["coffee", "scrub"],
+        ingredients: [
+            "Coffea Arabica Seed Powder",
+            "Sucrose",
+            "Cocos Nucifera Oil",
+            "Olea Europaea Fruit Oil",
+            "Simmondsia Chinensis Seed Oil",
+            "Butyrospermum Parkii Butter",
+            "Tocopherol — Vitamin E",
+        ],
+    },
+    {
+        keywords: ["niacinamide", "serum", "glimmer"],
+        ingredients: [
+            "Aqua",
+            "Aloe Barbadensis Leaf Juice",
+            "Niacinamide — Vitamin B3 (10%)",
+            "Glycerin — Vegetable Glycerin",
+            "Sodium Hyaluronate — Hyaluronic Acid",
+            "Panthenol — Pro-Vitamin B5",
+            "Xanthan Gum — Natural Gum Thickener",
+            "Sodium Benzoate — Preservative System Component",
+            "Citric Acid — pH Adjuster",
+        ],
+    },
+    {
+        keywords: ["lavender", "berry", "soap"],
+        ingredients: [
+            "Saponified Olive Oil",
+            "Saponified Coconut Oil",
+            "Saponified Shea Butter",
+            "Aqua",
+            "Lavender Powder",
+            "Berry Powder",
+            "Kaolin — Clay",
+        ],
+    },
+    {
+        keywords: ["vivid", "glow", "face cream", "cream"],
+        ingredients: [
+            "Aqua",
+            "Aloe Vera Juice",
+            "Glycerin — Vegetable Glycerin",
+            "Glyceryl Stearate — Emulsifier",
+            "Shea Butter",
+            "Jojoba Oil",
+            "Rosehip Oil",
+            "Tocopherol — Vitamin E",
+            "Sodium Benzoate — Preservative System Component",
+        ],
+    },
+];
+
+function getIngredients(productName: string, slug?: string): string[] {
+    // Match by slug first (most accurate)
+    const slugMap: Record<string, string[]> = {
+        "coffee-scrub": PRODUCT_INGREDIENTS[0].ingredients,
+        "niacinamide-serum": PRODUCT_INGREDIENTS[1].ingredients,
+        "lavender-berry-soap": PRODUCT_INGREDIENTS[2].ingredients,
+        "vivid-glow-face-cream": PRODUCT_INGREDIENTS[3].ingredients,
+    };
+    if (slug && slugMap[slug]) return slugMap[slug];
+
+    // Fall back to keyword match on name
+    const n = (productName || "").toLowerCase();
+    for (const entry of PRODUCT_INGREDIENTS) {
+        if (entry.keywords.some((kw) => n.includes(kw))) return entry.ingredients;
+    }
+    return ["Aqua", "Aloe Barbadensis Leaf Juice", "Glycerin", "Tocopherol — Vitamin E"];
+}
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
-    // Unwrap params Promise using React.use() for Next.js 15
     const { id } = use(params);
 
+    const [product, setProduct] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [notFound, setNotFound] = useState(false);
     const [selectedImage, setSelectedImage] = useState(0);
     const [quantity, setQuantity] = useState(1);
     const [isWishlisted, setIsWishlisted] = useState(false);
+    const [addedToCart, setAddedToCart] = useState(false);
+    const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
 
-    // Get product from productsData based on ID
-    const product = productsData[id as keyof typeof productsData];
+    useEffect(() => {
+        // Static slug (e.g. "coffee-scrub") — load from config, no API needed
+        if (isStaticSlug(id)) {
+            const staticProduct = getProductBySlug(id)!;
+            // Normalise to the same shape the rest of the page expects
+            setProduct({
+                _id: staticProduct.slug,
+                productName: staticProduct.name,
+                category: staticProduct.category,
+                retailPrice: staticProduct.price,
+                shortDescription: staticProduct.shortDescription,
+                longDescription: staticProduct.longDescription,
+                keyFeatures: staticProduct.keyFeatures,
+                images: [{ url: staticProduct.image, isPrimary: true }],
+                batchNumber: staticProduct.batchNumber,
+                unitsRemaining: staticProduct.unitsRemaining,
+                qrCode: null,
+                // store the slug so ingredients lookup works correctly
+                _slug: staticProduct.slug,
+            });
+            setLoading(false);
+            return;
+        }
 
-    // If product not found, show error or redirect
-    if (!product) {
+        // DB product — fetch by MongoDB id
+        const fetchProduct = async () => {
+            try {
+                const res = await fetch(`${API_URL}/products/${id}`);
+                const data = await res.json();
+                if (data.success && data.data?.product) {
+                    setProduct(data.data.product);
+                    fetchRelated(data.data.product.category);
+                } else {
+                    setNotFound(true);
+                }
+            } catch {
+                setNotFound(true);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        const fetchRelated = async (category: string) => {
+            try {
+                const res = await fetch(`${API_URL}/products?isListed=true&status=active&category=${category}&limit=4`);
+                const data = await res.json();
+                if (data.success) {
+                    setRelatedProducts((data.data || []).filter((p: any) => p._id !== id).slice(0, 3));
+                }
+            } catch { /* ignore */ }
+        };
+
+        fetchProduct();
+    }, [id]);
+
+    const handleAddToCart = () => {
+        if (!product) return;
+        const imgs: any[] = product.images || [];
+        const imageUrl = imgs.find((i: any) => i.isPrimary)?.url || imgs[0]?.url || getFallbackImage(product.productName);
+        addToCart({
+            productId: product._id,
+            name: product.productName,
+            price: product.retailPrice,
+            quantity,
+            image: imageUrl,
+            unitsAvailable: product.unitsRemaining,
+        });
+        setAddedToCart(true);
+        setTimeout(() => setAddedToCart(false), 2000);
+    };
+
+    const handleDownloadQr = () => {
+        if (!product?.qrCode?.qrCodeImage) return;
+        const link = document.createElement("a");
+        link.href = product.qrCode.qrCodeImage;
+        link.download = `qr-${product.productName?.replace(/\s+/g, "-").toLowerCase()}.png`;
+        link.click();
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gradient-cream flex items-center justify-center">
+                <Loader2 className="w-12 h-12 text-primary-600 animate-spin" />
+            </div>
+        );
+    }
+
+    if (notFound || !product) {
         return (
             <div className="min-h-screen bg-gradient-cream flex items-center justify-center">
                 <div className="text-center">
                     <h1 className="text-4xl font-bold text-earth-900 mb-4">Product Not Found</h1>
                     <p className="text-earth-600 mb-8">The product you're looking for doesn't exist.</p>
-                    <Link href="/products">
-                        <Button>Back to Products</Button>
-                    </Link>
+                    <Link href="/products"><Button>Back to Products</Button></Link>
                 </div>
             </div>
         );
     }
 
-    // Get related products (exclude current product)
-    const relatedProducts = Object.values(productsData)
-        .filter((p) => p.id !== product.id)
-        .slice(0, 3)
-        .map((p) => ({
-            id: p.id,
-            name: p.name,
-            price: p.price,
-            image: p.images[0],
-            rating: p.rating,
-        }));
+    const images: any[] = product.images || [];
+    const fallbackImage = getFallbackImage(product.productName);
+    const imageUrls = images.length > 0
+        ? images.map((i: any) => i.url)
+        : [fallbackImage];
 
-    const discount = product.originalPrice
-        ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-        : 0;
+    // Use real ingredient batch data from DB when available
+    const realIngredients: string[] =
+        product.ingredients && product.ingredients.length > 0
+            ? product.ingredients.map((ing: any) => {
+                  const batch = ing.ingredientBatch;
+                  if (!batch) return null;
+                  const name = batch.ingredientName || batch.scientificName || "Unknown";
+                  return batch.scientificName && batch.scientificName !== batch.ingredientName
+                      ? `${batch.scientificName} — ${batch.ingredientName}`
+                      : name;
+              }).filter(Boolean) as string[]
+            : [];
 
+    const ingredients = realIngredients.length > 0
+        ? realIngredients
+        : getIngredients(product.productName, product._slug || id);
+    const inStock = (product.unitsRemaining || 0) > 0;
+    const qrImage: string | null = product.qrCode?.qrCodeImage || null;
 
     return (
         <div className="min-h-screen bg-gradient-cream">
@@ -285,47 +254,32 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             <div className="bg-white border-b border-secondary-200">
                 <div className="container-custom py-4">
                     <div className="flex items-center gap-2 text-sm text-earth-600">
-                        <Link href="/" className="hover:text-primary-600">
-                            Home
-                        </Link>
+                        <Link href="/" className="hover:text-primary-600">Home</Link>
                         <span>/</span>
-                        <Link href="/products" className="hover:text-primary-600">
-                            Products
-                        </Link>
+                        <Link href="/products" className="hover:text-primary-600">Products</Link>
                         <span>/</span>
-                        <span className="text-earth-900">{product.name}</span>
+                        <span className="text-earth-900">{product.productName}</span>
                     </div>
                 </div>
             </div>
 
             <div className="container-custom py-12">
-                {/* Back Button */}
                 <Link href="/products">
                     <Button variant="ghost" leftIcon={<ChevronLeft className="w-5 h-5" />} className="mb-8">
                         Back to Products
                     </Button>
                 </Link>
 
-                {/* Main Product Section */}
-                <div className="grid lg:grid-cols-2 gap-12 mb-20">
+                {/* ── Main Product Section ── */}
+                <div className="grid lg:grid-cols-2 gap-12 mb-16">
                     {/* Image Gallery */}
-                    <motion.div
-                        initial={{ opacity: 0, x: -30 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.6 }}
-                    >
-                        {/* Main Image */}
-                        <div className="relative aspect-square rounded-3xl overflow-hidden mb-6 shadow-organic-lg">
+                    <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}>
+                        <div className="relative aspect-square rounded-3xl overflow-hidden mb-4 shadow-organic-lg bg-secondary-100">
                             <img
-                                src={product.images[selectedImage]}
-                                alt={product.name}
+                                src={imageUrls[selectedImage]}
+                                alt={product.productName}
                                 className="w-full h-full object-cover"
                             />
-                            {discount > 0 && (
-                                <div className="absolute top-6 right-6 bg-red-500 text-white px-4 py-2 rounded-full font-bold text-lg">
-                                    {discount}% OFF
-                                </div>
-                            )}
                             <div className="absolute top-6 left-6">
                                 <Badge variant="success" size="lg">
                                     <QrCode className="w-4 h-4 mr-1" />
@@ -333,98 +287,65 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                                 </Badge>
                             </div>
                         </div>
-
-                        {/* Thumbnail Gallery */}
-                        <div className="grid grid-cols-4 gap-4">
-                            {product.images.map((image, index) => (
-                                <button
-                                    key={index}
-                                    onClick={() => setSelectedImage(index)}
-                                    className={`aspect-square rounded-xl overflow-hidden transition-all ${selectedImage === index
-                                        ? "ring-4 ring-primary-500 scale-105"
-                                        : "opacity-70 hover:opacity-100"
-                                        }`}
-                                >
-                                    <img
-                                        src={image}
-                                        alt={`${product.name} ${index + 1}`}
-                                        className="w-full h-full object-cover"
-                                    />
-                                </button>
-                            ))}
-                        </div>
+                        {imageUrls.length > 1 && (
+                            <div className="grid grid-cols-4 gap-3">
+                                {imageUrls.map((url: string, index: number) => (
+                                    <button
+                                        key={index}
+                                        onClick={() => setSelectedImage(index)}
+                                        className={`aspect-square rounded-xl overflow-hidden transition-all bg-secondary-100 ${selectedImage === index ? "ring-4 ring-primary-500 scale-105" : "opacity-70 hover:opacity-100"}`}
+                                    >
+                                        <img src={url} alt="" className="w-full h-full object-cover" />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </motion.div>
 
                     {/* Product Info */}
-                    <motion.div
-                        initial={{ opacity: 0, x: 30 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.6 }}
-                    >
+                    <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}>
                         <div className="mb-4">
                             <Badge variant="primary">{product.category}</Badge>
                         </div>
 
                         <h1 className="font-serif font-bold text-4xl md:text-5xl text-earth-900 mb-4">
-                            {product.name}
+                            {product.productName}
                         </h1>
 
-                        {/* Rating */}
-                        <div className="flex items-center gap-4 mb-6">
-                            <div className="flex items-center gap-1">
-                                {[...Array(5)].map((_, i) => (
-                                    <Star
-                                        key={i}
-                                        className={`w-5 h-5 ${i < Math.floor(product.rating)
-                                            ? "fill-amber-400 text-amber-400"
-                                            : "text-gray-300"
-                                            }`}
-                                    />
-                                ))}
-                            </div>
-                            <span className="text-earth-700">
-                                {product.rating} ({product.reviews} reviews)
-                            </span>
-                        </div>
-
                         {/* Price */}
-                        <div className="flex items-baseline gap-4 mb-6">
+                        <div className="flex items-baseline gap-2 mb-6">
+                            <span className="text-4xl font-bold text-earth-900">LKR</span>
                             <span className="text-5xl font-bold text-earth-900">
-                                ${product.price}
+                                {(product.retailPrice || 0).toLocaleString()}
                             </span>
-                            {product.originalPrice && (
-                                <span className="text-2xl text-earth-500 line-through">
-                                    ${product.originalPrice}
-                                </span>
-                            )}
                         </div>
 
                         {/* Description */}
                         <p className="text-lg text-earth-700 leading-relaxed mb-8">
-                            {product.description}
+                            {product.longDescription || product.shortDescription || "A premium Luna Botanica organic skincare product, crafted with certified organic ingredients and complete supply chain transparency."}
                         </p>
 
-                        {/* Features */}
-                        <div className="mb-8">
-                            <h3 className="font-semibold text-earth-900 mb-4">Key Features:</h3>
-                            <ul className="space-y-3">
-                                {product.features.map((feature, index) => (
-                                    <li key={index} className="flex items-start gap-3">
-                                        <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                                        <span className="text-earth-700">{feature}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
+                        {/* Key Features */}
+                        {product.keyFeatures && product.keyFeatures.length > 0 && (
+                            <div className="mb-8">
+                                <h3 className="font-semibold text-earth-900 mb-3">Key Features</h3>
+                                <ul className="space-y-2">
+                                    {product.keyFeatures.map((f: string, i: number) => (
+                                        <li key={i} className="flex items-start gap-3">
+                                            <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                                            <span className="text-earth-700">{f}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
 
-                        {/* Stock Status */}
+                        {/* Stock */}
                         <div className="mb-6">
-                            {product.inStock ? (
+                            {inStock ? (
                                 <div className="flex items-center gap-2 text-green-600">
                                     <div className="w-3 h-3 bg-green-600 rounded-full animate-pulse" />
-                                    <span className="font-medium">
-                                        In Stock ({product.stockCount} available)
-                                    </span>
+                                    <span className="font-medium">In Stock ({product.unitsRemaining} units available)</span>
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-2 text-red-600">
@@ -434,26 +355,16 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                             )}
                         </div>
 
-                        {/* Quantity Selector */}
+                        {/* Quantity */}
                         <div className="mb-8">
-                            <label className="block font-semibold text-earth-900 mb-3">
-                                Quantity:
-                            </label>
+                            <label className="block font-semibold text-earth-900 mb-3">Quantity</label>
                             <div className="flex items-center gap-4">
                                 <div className="flex items-center bg-secondary-100 rounded-full">
-                                    <button
-                                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                        className="p-3 hover:bg-secondary-200 rounded-full transition-colors"
-                                    >
+                                    <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-3 hover:bg-secondary-200 rounded-full transition-colors">
                                         <Minus className="w-5 h-5 text-earth-700" />
                                     </button>
-                                    <span className="px-6 font-semibold text-earth-900">
-                                        {quantity}
-                                    </span>
-                                    <button
-                                        onClick={() => setQuantity(Math.min(product.stockCount, quantity + 1))}
-                                        className="p-3 hover:bg-secondary-200 rounded-full transition-colors"
-                                    >
+                                    <span className="px-6 font-semibold text-earth-900">{quantity}</span>
+                                    <button onClick={() => setQuantity(Math.min(product.unitsRemaining || 1, quantity + 1))} className="p-3 hover:bg-secondary-200 rounded-full transition-colors">
                                         <Plus className="w-5 h-5 text-earth-700" />
                                     </button>
                                 </div>
@@ -465,54 +376,26 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                             <Button
                                 size="lg"
                                 className="flex-1"
-                                leftIcon={<ShoppingCart className="w-5 h-5" />}
-                                disabled={!product.inStock}
+                                leftIcon={addedToCart ? <Check className="w-5 h-5" /> : <ShoppingCart className="w-5 h-5" />}
+                                disabled={!inStock}
+                                onClick={handleAddToCart}
                             >
-                                Add to Cart
+                                {addedToCart ? "Added to Cart!" : "Add to Cart"}
                             </Button>
-                            <Button
-                                size="lg"
-                                variant={isWishlisted ? "primary" : "outline"}
-                                onClick={() => setIsWishlisted(!isWishlisted)}
-                            >
-                                <Heart
-                                    className={`w-5 h-5 ${isWishlisted ? "fill-current" : ""}`}
-                                />
+                            <Button size="lg" variant={isWishlisted ? "primary" : "outline"} onClick={() => setIsWishlisted(!isWishlisted)}>
+                                <Heart className={`w-5 h-5 ${isWishlisted ? "fill-current" : ""}`} />
                             </Button>
                             <Button size="lg" variant="outline">
                                 <Share2 className="w-5 h-5" />
                             </Button>
                         </div>
 
-                        {/* Traceability Info */}
-                        <Card className="bg-primary-50 border-primary-200">
-                            <div className="flex items-start gap-4">
-                                <div className="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                                    <QrCode className="w-6 h-6 text-white" />
-                                </div>
-                                <div>
-                                    <h4 className="font-semibold text-earth-900 mb-2">
-                                        QR Traceability Available
-                                    </h4>
-                                    <p className="text-sm text-earth-700 mb-3">
-                                        Scan the QR code on your product to view complete supply chain
-                                        information, ingredient sources, and certifications.
-                                    </p>
-                                    <Link href={`/verify/${product.qrCode}`}>
-                                        <Button size="sm" variant="primary">
-                                            View Traceability Info
-                                        </Button>
-                                    </Link>
-                                </div>
-                            </div>
-                        </Card>
-
                         {/* Trust Badges */}
-                        <div className="grid grid-cols-3 gap-4 mt-8 pt-8 border-t border-secondary-200">
+                        <div className="grid grid-cols-3 gap-4 pt-8 border-t border-secondary-200">
                             <div className="text-center">
                                 <Truck className="w-8 h-8 text-primary-600 mx-auto mb-2" />
                                 <p className="text-sm font-medium text-earth-900">Free Shipping</p>
-                                <p className="text-xs text-earth-600">On orders $50+</p>
+                                <p className="text-xs text-earth-600">Orders LKR 10,000+</p>
                             </div>
                             <div className="text-center">
                                 <Shield className="w-8 h-8 text-green-600 mx-auto mb-2" />
@@ -528,93 +411,137 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                     </motion.div>
                 </div>
 
-                {/* Product Details Tabs */}
-                <Card padding="lg" className="mb-12">
-                    <div className="grid md:grid-cols-2 gap-8">
-                        <div>
-                            <h3 className="font-serif font-semibold text-2xl text-earth-900 mb-4">
-                                Specifications
-                            </h3>
-                            <dl className="space-y-3">
-                                <div className="flex justify-between py-2 border-b border-secondary-200">
-                                    <dt className="text-earth-600">SKU:</dt>
-                                    <dd className="font-medium text-earth-900">{product.sku}</dd>
-                                </div>
-                                <div className="flex justify-between py-2 border-b border-secondary-200">
-                                    <dt className="text-earth-600">Batch Number:</dt>
-                                    <dd className="font-medium text-earth-900">{product.batchNumber}</dd>
-                                </div>
-                                <div className="flex justify-between py-2 border-b border-secondary-200">
-                                    <dt className="text-earth-600">Weight:</dt>
-                                    <dd className="font-medium text-earth-900">{product.specifications.weight}</dd>
-                                </div>
-                                <div className="flex justify-between py-2 border-b border-secondary-200">
-                                    <dt className="text-earth-600">Origin:</dt>
-                                    <dd className="font-medium text-earth-900">{product.specifications.origin}</dd>
-                                </div>
-                                <div className="flex justify-between py-2 border-b border-secondary-200">
-                                    <dt className="text-earth-600">Shelf Life:</dt>
-                                    <dd className="font-medium text-earth-900">{product.specifications.shelfLife}</dd>
-                                </div>
-                            </dl>
-                        </div>
-
-                        <div>
-                            <h3 className="font-serif font-semibold text-2xl text-earth-900 mb-4">
-                                Certifications
-                            </h3>
-                            <div className="space-y-3">
-                                {product.specifications.certifications.map((cert, index) => (
-                                    <div
-                                        key={index}
-                                        className="flex items-center gap-3 p-3 bg-green-50 rounded-xl"
-                                    >
-                                        <Shield className="w-6 h-6 text-green-600 flex-shrink-0" />
-                                        <span className="font-medium text-earth-900">{cert}</span>
-                                    </div>
-                                ))}
+                {/* ── Ingredients Section ── */}
+                <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-12">
+                    <Card padding="lg">
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                                <Leaf className="w-5 h-5 text-green-600" />
+                            </div>
+                            <div>
+                                <h2 className="font-serif font-bold text-2xl text-earth-900">Ingredients We Use</h2>
+                                <p className="text-sm text-earth-600">Sourced from certified organic suppliers worldwide</p>
                             </div>
                         </div>
-                    </div>
-                </Card>
 
-                {/* Related Products */}
-                <div>
-                    <h2 className="font-serif font-bold text-3xl text-earth-900 mb-8">
-                        You May Also Like
-                    </h2>
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {relatedProducts.map((relatedProduct) => (
-                            <Link key={relatedProduct.id} href={`/products/${relatedProduct.id}`}>
-                                <Card hover padding="none" className="overflow-hidden group">
-                                    <div className="aspect-square overflow-hidden">
-                                        <img
-                                            src={relatedProduct.image}
-                                            alt={relatedProduct.name}
-                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                        />
-                                    </div>
-                                    <div className="p-5">
-                                        <h3 className="font-serif font-semibold text-lg text-earth-900 mb-2">
-                                            {relatedProduct.name}
-                                        </h3>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-2xl font-bold text-earth-900">
-                                                ${relatedProduct.price}
-                                            </span>
-                                            <div className="flex items-center gap-1">
-                                                <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                                                <span className="text-sm text-earth-600">
-                                                    {relatedProduct.rating}
-                                                </span>
-                                            </div>
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {ingredients.map((ing, i) => {
+                                // Split "Name — Description" if present
+                                const [mainName, subNote] = ing.split(" — ");
+                                return (
+                                    <div key={i} className="flex items-start gap-3 p-4 border-2 border-secondary-200 rounded-2xl hover:border-primary-300 transition-colors">
+                                        <div className="w-7 h-7 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <Leaf className="w-4 h-4 text-primary-600" />
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-earth-900 text-sm">{mainName}</p>
+                                            {subNote && <p className="text-xs text-earth-500 mt-0.5">{subNote}</p>}
                                         </div>
                                     </div>
-                                </Card>
-                            </Link>
-                        ))}
+                                );
+                            })}
+                        </div>
+
+                        <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-xl">
+                            <p className="text-sm text-green-800">
+                                <strong>Full Transparency:</strong> Every ingredient is traceable back to its source. Scan the QR code below to view the complete supply chain journey.
+                            </p>
+                        </div>
+                    </Card>
+                </motion.div>
+
+                {/* ── QR Code Section ── */}
+                <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-12">
+                    <Card padding="lg" className="bg-gradient-to-br from-primary-50 to-secondary-50 border-primary-200">
+                        <div className="flex flex-col md:flex-row items-center gap-8">
+                            {/* QR Code image or placeholder */}
+                            <div className="flex-shrink-0">
+                                {qrImage ? (
+                                    <div className="text-center">
+                                        <div className="w-48 h-48 rounded-2xl overflow-hidden border-4 border-primary-200 bg-white p-2 shadow-lg">
+                                            <img src={qrImage} alt="QR Code" className="w-full h-full object-contain" />
+                                        </div>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="mt-3"
+                                            leftIcon={<Download className="w-4 h-4" />}
+                                            onClick={handleDownloadQr}
+                                        >
+                                            Download QR
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="w-48 h-48 rounded-2xl border-4 border-dashed border-primary-300 bg-white/60 flex flex-col items-center justify-center">
+                                        <QrCode className="w-16 h-16 text-primary-400 mb-2" />
+                                        <p className="text-xs text-primary-500 text-center px-4">QR code will appear here once generated</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Info */}
+                            <div className="flex-1 text-center md:text-left">
+                                <div className="flex items-center gap-2 justify-center md:justify-start mb-3">
+                                    <Scan className="w-6 h-6 text-primary-600" />
+                                    <h3 className="font-serif font-bold text-2xl text-earth-900">Scan to Verify</h3>
+                                </div>
+                                <p className="text-earth-700 mb-4 leading-relaxed">
+                                    Scan this QR code with your phone camera to instantly verify the authenticity of this product and trace every ingredient back to its organic source farm.
+                                </p>
+                                <ul className="space-y-2 text-sm text-earth-700">
+                                    <li className="flex items-center gap-2">
+                                        <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                        View complete ingredient supply chain
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                        Verify organic certifications
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                        Check batch number & manufacturing date
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                        Confirm product authenticity
+                                    </li>
+                                </ul>
+                                {product.batchNumber && (
+                                    <div className="mt-4 inline-block bg-white/70 rounded-xl px-4 py-2">
+                                        <p className="text-xs text-earth-600">Batch Number</p>
+                                        <p className="font-mono font-bold text-earth-900">{product.batchNumber}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </Card>
+                </motion.div>
+
+                {/* ── Related Products ── */}
+                {relatedProducts.length > 0 && (
+                    <div>
+                        <h2 className="font-serif font-bold text-3xl text-earth-900 mb-8">You May Also Like</h2>
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {relatedProducts.map((p: any) => {
+                                const imgs: any[] = p.images || [];
+                                const thumb = imgs[0]?.url || getFallbackImage(p.productName);
+                                return (
+                                    <Link key={p._id} href={`/products/${p._id}`}>
+                                        <Card hover padding="none" className="overflow-hidden group cursor-pointer">
+                                            <div className="aspect-square overflow-hidden bg-secondary-100">
+                                                <img src={thumb} alt={p.productName} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                            </div>
+                                            <div className="p-5">
+                                                <h3 className="font-serif font-semibold text-lg text-earth-900 mb-2">{p.productName}</h3>
+                                                <span className="text-xl font-bold text-earth-900">LKR {(p.retailPrice || 0).toLocaleString()}</span>
+                                            </div>
+                                        </Card>
+                                    </Link>
+                                );
+                            })}
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );

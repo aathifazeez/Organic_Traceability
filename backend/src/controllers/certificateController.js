@@ -447,6 +447,98 @@ const getExpiringCertificates = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Verify a certificate (Admin only)
+ * @route   PATCH /api/v1/certificates/:id/verify
+ * @access  Private (Admin)
+ */
+const verifyCertificate = async (req, res) => {
+    try {
+        const certificate = await Certificate.findById(req.params.id);
+
+        if (!certificate) {
+            return errorResponse(res, 'Certificate not found', HTTP_STATUS.NOT_FOUND);
+        }
+
+        certificate.isVerified = true;
+        certificate.verifiedBy = req.user._id;
+        certificate.verifiedAt = new Date();
+        certificate.verificationNotes = req.body.notes || '';
+        await certificate.save();
+
+        await certificate.populate('supplier', 'name email companyName');
+        await certificate.populate('verifiedBy', 'name email');
+
+        await AuditLog.logAction({
+            action: 'UPDATE',
+            entityType: 'Certificate',
+            entityId: certificate._id,
+            performedBy: req.user._id,
+            changes: { after: { isVerified: true } },
+            ipAddress: req.ip,
+            userAgent: req.get('user-agent'),
+            description: `Verified certificate: ${certificate.certificateNumber}`,
+        });
+
+        return successResponse(res, 'Certificate verified successfully', { certificate });
+    } catch (error) {
+        console.error('Verify certificate error:', error);
+        return errorResponse(res, 'Failed to verify certificate', HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    }
+};
+
+/**
+ * @desc    Reject a certificate (Admin only)
+ * @route   PATCH /api/v1/certificates/:id/reject
+ * @access  Private (Admin)
+ */
+const rejectCertificate = async (req, res) => {
+    try {
+        const certificate = await Certificate.findById(req.params.id);
+
+        if (!certificate) {
+            return errorResponse(res, 'Certificate not found', HTTP_STATUS.NOT_FOUND);
+        }
+
+        certificate.isVerified = false;
+        certificate.verifiedBy = req.user._id;
+        certificate.verifiedAt = new Date();
+        certificate.verificationNotes = req.body.notes || 'Rejected by admin';
+        certificate.status = 'revoked';
+        await certificate.save();
+
+        await AuditLog.logAction({
+            action: 'UPDATE',
+            entityType: 'Certificate',
+            entityId: certificate._id,
+            performedBy: req.user._id,
+            changes: { after: { isVerified: false, status: 'revoked' } },
+            ipAddress: req.ip,
+            userAgent: req.get('user-agent'),
+            description: `Rejected certificate: ${certificate.certificateNumber}`,
+        });
+
+        return successResponse(res, 'Certificate rejected', { certificate });
+    } catch (error) {
+        console.error('Reject certificate error:', error);
+        return errorResponse(res, 'Failed to reject certificate', HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    }
+};
+
+/**
+ * @desc    Get pending (unverified) certificate count
+ * @route   GET /api/v1/certificates/pending/count
+ * @access  Private (Admin)
+ */
+const getPendingCount = async (req, res) => {
+    try {
+        const count = await Certificate.countDocuments({ isVerified: false, status: { $ne: 'revoked' } });
+        return successResponse(res, 'Pending count retrieved', { count });
+    } catch (error) {
+        return errorResponse(res, 'Failed to get count', HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    }
+};
+
 module.exports = {
     uploadCertificate,
     getCertificates,
@@ -455,4 +547,7 @@ module.exports = {
     deleteCertificate,
     getCertificateAnalytics,
     getExpiringCertificates,
+    verifyCertificate,
+    rejectCertificate,
+    getPendingCount,
 };

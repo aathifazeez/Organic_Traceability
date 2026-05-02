@@ -77,15 +77,13 @@ const fileFilter = (req, file, cb) => {
     // Remove leading dot from extension
     const ext = extname.substring(1);
 
-    // Certificate uploads
+    // Certificate uploads — accept PDF and any image format
     if (file.fieldname === 'certificate') {
-        const isValidExt = allowedDocTypes.test(ext);
-        const isValidMime = /^(application\/pdf|image\/(jpeg|jpg|png))$/.test(mimetype);
-
-        if (isValidExt && isValidMime) {
+        const isValidMime = /^(application\/pdf|image\/.+)$/.test(mimetype);
+        if (isValidMime) {
             return cb(null, true);
         } else {
-            return cb(new Error('Certificates must be PDF, JPG, or PNG files'), false);
+            return cb(new Error('Certificates must be a PDF or image file (JPG, PNG, WEBP, HEIC, TIFF, etc.)'), false);
         }
     }
 

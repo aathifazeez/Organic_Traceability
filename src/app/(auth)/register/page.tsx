@@ -82,24 +82,25 @@ export default function RegisterPage() {
             return;
         }
 
-        // Simulate registration API call
-        setTimeout(() => {
-            const result = register({
+        try {
+            const result = await register({
                 email: formData.email,
                 password: formData.password,
-                name: formData.companyName,
-                role: "supplier", // Always supplier for public registration
-                companyInfo: `${formData.fullName} - ${formData.companyName}`,
+                name: formData.fullName,
+                role: "supplier",
+                companyName: formData.companyName,
             });
 
             if (result.success) {
                 setShowSuccess(true);
-                // Don't redirect - show pending approval message
             } else {
                 setError(result.error || "Registration failed. Please try again.");
             }
+        } catch {
+            setError("Unable to connect to server. Please try again.");
+        } finally {
             setIsLoading(false);
-        }, 1500);
+        }
     };
 
     // Success screen after registration

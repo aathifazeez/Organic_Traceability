@@ -112,7 +112,7 @@ const productBatchSchema = new mongoose.Schema(
             unit: {
                 type: String,
                 required: true,
-                enum: ['ml', 'g', 'oz'],
+                enum: ['ml', 'g', 'oz', 'L', 'kg', 'lb'],
             },
         },
 
@@ -130,13 +130,13 @@ const productBatchSchema = new mongoose.Schema(
         },
         retailPrice: {
             type: Number,
-            required: [true, 'Retail price is required'],
+            default: 0,
             min: [0, 'Price cannot be negative'],
         },
         currency: {
             type: String,
             default: 'USD',
-            enum: ['USD', 'EUR', 'GBP', 'INR'],
+            enum: ['USD', 'EUR', 'GBP', 'INR', 'LKR'],
         },
 
         // Images

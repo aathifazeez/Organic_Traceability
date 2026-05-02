@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -18,10 +18,11 @@ import {
     QrCode,
     ShoppingBag,
     Plus,
-    UserPlus,
     Eye,
     FileText,
+    ShieldCheck,
 } from "lucide-react";
+import { apiRequest } from "@/lib/auth";
 import Logo from "@/components/shared/Logo";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -44,7 +45,12 @@ const adminNavLinks = [
         href: "/admin/dashboard/approvals",
         label: "Supplier Approvals",
         icon: CheckSquare,
-        badge: 5,
+        section: "admin",
+    },
+    {
+        href: "/admin/dashboard/certificates",
+        label: "Certificate Verification",
+        icon: ShieldCheck,
         section: "admin",
     },
 
@@ -120,6 +126,13 @@ const quickActions = [
 export default function AdminSidebar() {
     const pathname = usePathname();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [pendingCertCount, setPendingCertCount] = useState(0);
+
+    useEffect(() => {
+        apiRequest("/certificates/pending/count")
+            .then((res) => { if (res.success) setPendingCertCount(res.data?.count || 0); })
+            .catch(() => {});
+    }, [pathname]);
 
     const isActive = (path: string) => {
         if (path === "/admin/dashboard") {
@@ -213,6 +226,10 @@ export default function AdminSidebar() {
                             {adminLinks.map((link) => {
                                 const Icon = link.icon;
                                 const active = isActive(link.href);
+                                const badgeCount =
+                                    link.href === "/admin/dashboard/certificates"
+                                        ? pendingCertCount
+                                        : 0;
 
                                 return (
                                     <Link
@@ -228,9 +245,9 @@ export default function AdminSidebar() {
                                     >
                                         <Icon className="w-5 h-5" />
                                         <span className="flex-1">{link.label}</span>
-                                        {link.badge && link.badge > 0 && (
-                                            <span className="px-2 py-0.5 bg-red-600 text-white text-xs font-bold rounded-full">
-                                                {link.badge}
+                                        {badgeCount > 0 && (
+                                            <span className="px-2 py-0.5 bg-amber-500 text-white text-xs font-bold rounded-full">
+                                                {badgeCount}
                                             </span>
                                         )}
                                         {active && (

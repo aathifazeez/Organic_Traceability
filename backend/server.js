@@ -3,7 +3,7 @@ const app = require('./src/app');
 const connectDB = require('./src/config/database');
 const { initScheduledJobs } = require('./src/services/scheduledJobs');
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Connect to MongoDB

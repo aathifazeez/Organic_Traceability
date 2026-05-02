@@ -220,12 +220,18 @@ qrCodeSchema.statics.findByQrId = function (qrId) {
     return this.findOne({ qrId, isActive: true })
         .populate({
             path: 'productBatch',
-            populate: {
-                path: 'ingredients.ingredientBatch',
-                populate: {
-                    path: 'supplier certificates',
+            populate: [
+                {
+                    path: 'ingredients.ingredientBatch',
+                    populate: {
+                        path: 'supplier certificates',
+                    },
                 },
-            },
+                {
+                    path: 'manufacturer',
+                    select: 'name companyName',
+                },
+            ],
         });
 };
 

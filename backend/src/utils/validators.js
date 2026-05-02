@@ -209,14 +209,12 @@ const createBatchValidation = [
         .withMessage('Origin country is required'),
 
     body('harvestDate')
-        .notEmpty()
-        .withMessage('Harvest date is required')
+        .optional()
         .isISO8601()
         .withMessage('Invalid harvest date format'),
 
     body('manufacturingDate')
-        .notEmpty()
-        .withMessage('Manufacturing date is required')
+        .optional()
         .isISO8601()
         .withMessage('Invalid manufacturing date format'),
 
@@ -224,13 +222,7 @@ const createBatchValidation = [
         .notEmpty()
         .withMessage('Expiry date is required')
         .isISO8601()
-        .withMessage('Invalid expiry date format')
-        .custom((value, { req }) => {
-            if (new Date(value) <= new Date(req.body.manufacturingDate)) {
-                throw new Error('Expiry date must be after manufacturing date');
-            }
-            return true;
-        }),
+        .withMessage('Invalid expiry date format'),
 
     body('unitPrice')
         .optional()
@@ -404,32 +396,29 @@ const createProductBatchValidation = [
         .withMessage('Short description cannot exceed 200 characters'),
 
     body('ingredients')
-        .isArray({ min: 1 })
-        .withMessage('At least one ingredient is required'),
+        .optional()
+        .isArray()
+        .withMessage('Ingredients must be an array'),
 
     body('ingredients.*.ingredientBatch')
-        .notEmpty()
-        .withMessage('Ingredient batch ID is required')
+        .optional()
         .isMongoId()
         .withMessage('Invalid ingredient batch ID'),
 
     body('ingredients.*.quantityUsed.value')
-        .notEmpty()
-        .withMessage('Quantity value is required')
+        .optional()
         .isNumeric()
         .withMessage('Quantity must be a number')
         .custom(value => value > 0)
         .withMessage('Quantity must be greater than 0'),
 
     body('ingredients.*.quantityUsed.unit')
-        .notEmpty()
-        .withMessage('Quantity unit is required')
+        .optional()
         .isIn(['ml', 'L', 'g', 'kg', 'oz', 'lb'])
         .withMessage('Invalid quantity unit'),
 
     body('productionDate')
-        .notEmpty()
-        .withMessage('Production date is required')
+        .optional()
         .isISO8601()
         .withMessage('Invalid production date format'),
 
@@ -437,13 +426,7 @@ const createProductBatchValidation = [
         .notEmpty()
         .withMessage('Expiry date is required')
         .isISO8601()
-        .withMessage('Invalid expiry date format')
-        .custom((value, { req }) => {
-            if (new Date(value) <= new Date(req.body.productionDate)) {
-                throw new Error('Expiry date must be after production date');
-            }
-            return true;
-        }),
+        .withMessage('Invalid expiry date format'),
 
     body('totalUnits')
         .notEmpty()
@@ -452,22 +435,19 @@ const createProductBatchValidation = [
         .withMessage('Total units must be at least 1'),
 
     body('unitSize.value')
-        .notEmpty()
-        .withMessage('Unit size value is required')
+        .optional()
         .isNumeric()
         .withMessage('Unit size must be a number')
         .custom(value => value > 0)
         .withMessage('Unit size must be greater than 0'),
 
     body('unitSize.unit')
-        .notEmpty()
-        .withMessage('Unit size unit is required')
-        .isIn(['ml', 'g', 'oz'])
+        .optional()
+        .isIn(['ml', 'g', 'oz', 'L', 'kg', 'lb'])
         .withMessage('Invalid unit size unit'),
 
     body('retailPrice')
-        .notEmpty()
-        .withMessage('Retail price is required')
+        .optional()
         .isNumeric()
         .withMessage('Price must be a number')
         .custom(value => value >= 0)

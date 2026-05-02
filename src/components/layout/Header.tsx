@@ -1,20 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Menu, X, ShoppingCart, User, Search } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Menu, X, ShoppingCart, User, Search, LogOut, ChevronDown, LayoutDashboard } from "lucide-react";
 import Logo from "@/components/shared/Logo";
 import Button from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-
-// Mock user - replace with actual auth
-const mockUser = {
-    role: "customer" as const,
-    name: "John Doe",
-    isLoggedIn: false,
-};
+import { getCurrentUser, logout, type User as AuthUser } from "@/lib/auth";
+import { getCartCount } from "@/lib/cart";
 
 const publicLinks = [
     { href: "/", label: "Home" },
@@ -26,7 +21,40 @@ const publicLinks = [
 export default function Header() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+    const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+    const [cartCount, setCartCount] = useState(0);
     const pathname = usePathname();
+    const router = useRouter();
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        setCurrentUser(getCurrentUser());
+        setCartCount(getCartCount());
+    }, [pathname]);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+                setIsProfileDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const handleLogout = () => {
+        logout();
+        setCurrentUser(null);
+        setIsProfileDropdownOpen(false);
+        router.push("/");
+    };
+
+    const getDashboardHref = (role?: string) => {
+        if (role === "admin") return "/admin/dashboard";
+        if (role === "supplier") return "/supplier/dashboard";
+        return "/";
+    };
 
     const isActive = (path: string) => pathname === path;
 
@@ -77,24 +105,72 @@ export default function Header() {
                             className="p-2 hover:bg-secondary-100 rounded-full transition-colors relative"
                         >
                             <ShoppingCart className="w-5 h-5 text-earth-600" />
-                            <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary-600 text-white text-xs rounded-full flex items-center justify-center">
-                                2
-                            </span>
+                            {cartCount > 0 && (
+                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary-600 text-white text-xs rounded-full flex items-center justify-center">
+                                    {cartCount}
+                                </span>
+                            )}
                         </Link>
 
-                        {/* Auth Buttons */}
-                        {mockUser.isLoggedIn ? (
-                            <Link href="/profile">
-                                <Button variant="ghost" size="sm" leftIcon={<User className="w-4 h-4" />}>
-                                    Profile
-                                </Button>
-                            </Link>
+                        {/* Auth */}
+                        {currentUser ? (
+                            <div className="relative" ref={dropdownRef}>
+                                <button
+                                    onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-secondary-100 transition-colors"
+                                >
+                                    {currentUser.avatar ? (
+                                        <img
+                                            src={currentUser.avatar}
+                                            alt={currentUser.name}
+                                            className="w-8 h-8 rounded-full object-cover border-2 border-primary-200"
+                                        />
+                                    ) : (
+                                        <div className="w-8 h-8 rounded-full bg-primary-100 border-2 border-primary-200 flex items-center justify-center">
+                                            <span className="text-primary-700 font-semibold text-sm">
+                                                {currentUser.name?.charAt(0)?.toUpperCase() || "U"}
+                                            </span>
+                                        </div>
+                                    )}
+                                    <span className="text-sm font-medium text-earth-800 max-w-[120px] truncate">
+                                        {currentUser.companyName || currentUser.name}
+                                    </span>
+                                    <ChevronDown className={cn("w-4 h-4 text-earth-500 transition-transform", isProfileDropdownOpen && "rotate-180")} />
+                                </button>
+
+                                <AnimatePresence>
+                                    {isProfileDropdownOpen && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 6, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 6, scale: 0.95 }}
+                                            transition={{ duration: 0.15 }}
+                                            className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-secondary-200 py-1 z-50"
+                                        >
+                                            <Link
+                                                href={getDashboardHref(currentUser.role)}
+                                                onClick={() => setIsProfileDropdownOpen(false)}
+                                                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-earth-700 hover:bg-secondary-50 hover:text-primary-600 transition-colors"
+                                            >
+                                                <LayoutDashboard className="w-4 h-4" />
+                                                Dashboard
+                                            </Link>
+                                            <div className="border-t border-secondary-100 my-1" />
+                                            <button
+                                                onClick={handleLogout}
+                                                className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                            >
+                                                <LogOut className="w-4 h-4" />
+                                                Logout
+                                            </button>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         ) : (
                             <>
                                 <Link href="/login">
-                                    <Button variant="ghost" size="sm">
-                                        Login
-                                    </Button>
+                                    <Button variant="ghost" size="sm">Login</Button>
                                 </Link>
                                 <Link href="/register">
                                     <Button size="sm">Get Started</Button>
@@ -168,22 +244,49 @@ export default function Header() {
                             <div className="pt-4 border-t border-secondary-200 space-y-3">
                                 <Link href="/cart" onClick={() => setIsMobileMenuOpen(false)}>
                                     <Button variant="ghost" className="w-full justify-start" leftIcon={<ShoppingCart className="w-5 h-5" />}>
-                                        Cart (2)
+                                        Cart {cartCount > 0 ? `(${cartCount})` : ""}
                                     </Button>
                                 </Link>
 
-                                {mockUser.isLoggedIn ? (
-                                    <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)}>
-                                        <Button variant="outline" className="w-full">
-                                            Profile
+                                {currentUser ? (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-3 py-2">
+                                            {currentUser.avatar ? (
+                                                <img src={currentUser.avatar} alt={currentUser.name} className="w-9 h-9 rounded-full object-cover" />
+                                            ) : (
+                                                <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center">
+                                                    <span className="text-primary-700 font-semibold">
+                                                        {currentUser.name?.charAt(0)?.toUpperCase() || "U"}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            <div>
+                                                <p className="font-medium text-earth-900 text-sm">{currentUser.companyName || currentUser.name}</p>
+                                                <p className="text-xs text-earth-500 capitalize">{currentUser.role}</p>
+                                            </div>
+                                        </div>
+                                        <Link href={getDashboardHref(currentUser.role)} onClick={() => setIsMobileMenuOpen(false)}>
+                                            <Button
+                                                variant="outline"
+                                                className="w-full"
+                                                leftIcon={<LayoutDashboard className="w-4 h-4" />}
+                                            >
+                                                Dashboard
+                                            </Button>
+                                        </Link>
+                                        <Button
+                                            variant="outline"
+                                            className="w-full text-red-600 border-red-300"
+                                            leftIcon={<LogOut className="w-4 h-4" />}
+                                            onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}
+                                        >
+                                            Logout
                                         </Button>
-                                    </Link>
+                                    </div>
                                 ) : (
                                     <>
                                         <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                                            <Button variant="outline" className="w-full">
-                                                Login
-                                            </Button>
+                                            <Button variant="outline" className="w-full">Login</Button>
                                         </Link>
                                         <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
                                             <Button className="w-full">Get Started</Button>

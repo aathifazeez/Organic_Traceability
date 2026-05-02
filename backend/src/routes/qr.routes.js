@@ -9,12 +9,14 @@ const {
     deactivateQRCode,
     getQRAnalytics,
     getQRScans,
+    uploadQRCode,
 } = require('../controllers/qrController');
 
 const { authenticate } = require('../middleware/auth.middleware');
 const { isAdmin } = require('../middleware/role.middleware');
 const validate = require('../middleware/validation.middleware');
 const { mongoIdValidation } = require('../utils/validators');
+const upload = require('../config/multer');
 
 // Public routes
 router.get('/verify/:qrId', verifyQRCode);
@@ -32,6 +34,14 @@ router.post(
     mongoIdValidation('productId'),
     validate,
     generateQRCode
+);
+
+router.post(
+    '/upload/:productId',
+    mongoIdValidation('productId'),
+    validate,
+    upload.single('qrImage'),
+    uploadQRCode
 );
 
 router.get('/', getQRCodes);

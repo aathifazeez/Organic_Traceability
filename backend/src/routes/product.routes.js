@@ -27,6 +27,10 @@ const {
 // Public routes (no authentication required)
 router.get('/', optionalAuth, getProductBatches); // Public can see listed products
 
+// Admin-only helper routes MUST come before /:id wildcard
+router.get('/analytics/summary', authenticate, isAdmin, getProductAnalytics);
+router.get('/ingredients/available', authenticate, isAdmin, getAvailableIngredients);
+
 router.get(
     '/:id',
     optionalAuth,
@@ -45,10 +49,6 @@ router.get(
 // Protected routes (require admin authentication)
 router.use(authenticate);
 router.use(isAdmin);
-
-// Analytics and helper routes (must be before :id routes)
-router.get('/analytics/summary', getProductAnalytics);
-router.get('/ingredients/available', getAvailableIngredients);
 
 // CRUD routes
 router.post(

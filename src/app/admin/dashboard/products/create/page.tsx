@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Save, AlertCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Save, AlertCircle, CheckCircle, FileText, MapPin } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/admin/AdminSidebar";
@@ -11,6 +11,7 @@ import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Button from "@/components/ui/Button";
+import { apiRequest } from "@/lib/auth";
 
 const steps = [
     { id: 1, name: "Product Details" },
@@ -22,35 +23,69 @@ export default function CreateProductPage() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(1);
     const [selectedIngredients, setSelectedIngredients] = useState<any[]>([]);
+    const [creating, setCreating] = useState(false);
+    const [createError, setCreateError] = useState<string | null>(null);
 
     const [productData, setProductData] = useState({
         name: "",
-        batchNumber: "",
+        shortDescription: "",
         description: "",
         category: "face-cream",
         skinType: "all",
         quantity: "",
         unit: "ml",
+        retailPrice: "",
         manufacturedDate: "",
         expiryDate: "",
     });
 
     const handleNext = () => {
-        if (currentStep < 3) {
-            setCurrentStep(currentStep + 1);
+        if (currentStep === 1) {
+            if (!productData.name || !productData.shortDescription || !productData.quantity || !productData.manufacturedDate || !productData.expiryDate) {
+                alert("Please fill in all required fields");
+                return;
+            }
         }
+        if (currentStep < 3) setCurrentStep(currentStep + 1);
     };
 
     const handleBack = () => {
-        if (currentStep > 1) {
-            setCurrentStep(currentStep - 1);
-        }
+        if (currentStep > 1) setCurrentStep(currentStep - 1);
     };
 
-    const handleCreate = () => {
-        // Create product batch
-        console.log("Creating product:", { productData, selectedIngredients });
-        router.push("/admin/dashboard/products");
+    const handleCreate = async () => {
+        setCreateError(null);
+        setCreating(true);
+        try {
+            const body: any = {
+                productName: productData.name,
+                category: productData.category,
+                skinType: productData.skinType,
+                shortDescription: productData.shortDescription,
+                ingredients: selectedIngredients.map((ing) => ({
+                    ingredientBatch: ing._id,
+                    quantityUsed: ing.quantityUsed,
+                })),
+                productionDate: new Date(productData.manufacturedDate).toISOString(),
+                expiryDate: new Date(productData.expiryDate).toISOString(),
+                totalUnits: parseInt(productData.quantity),
+                unitSize: { value: parseInt(productData.quantity), unit: productData.unit },
+            };
+            if (productData.description) body.longDescription = productData.description;
+            if (productData.retailPrice) body.retailPrice = parseFloat(productData.retailPrice);
+
+            const res = await apiRequest("/products", { method: "POST", body: JSON.stringify(body) });
+
+            if (res.success) {
+                router.push("/admin/dashboard/products");
+            } else {
+                setCreateError(res.message || "Failed to create product batch");
+            }
+        } catch {
+            setCreateError("Failed to create product batch. Please try again.");
+        } finally {
+            setCreating(false);
+        }
     };
 
     return (
@@ -96,28 +131,29 @@ export default function CreateProductPage() {
                                     <div key={step.id} className="flex items-center flex-1">
                                         <div className="flex flex-col items-center flex-1">
                                             <div
-                                                className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-all ${isCompleted
-                                                    ? "bg-green-600 text-white"
-                                                    : isActive
+                                                className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-all ${
+                                                    isCompleted
+                                                        ? "bg-green-600 text-white"
+                                                        : isActive
                                                         ? "bg-primary-600 text-white"
                                                         : "bg-secondary-200 text-earth-600"
-                                                    }`}
+                                                }`}
                                             >
                                                 {isCompleted ? "✓" : step.id}
                                             </div>
                                             <span
-                                                className={`text-sm font-medium ${isActive || isCompleted
-                                                    ? "text-earth-900"
-                                                    : "text-earth-600"
-                                                    }`}
+                                                className={`text-sm font-medium ${
+                                                    isActive || isCompleted ? "text-earth-900" : "text-earth-600"
+                                                }`}
                                             >
                                                 {step.name}
                                             </span>
                                         </div>
                                         {index < steps.length - 1 && (
                                             <div
-                                                className={`h-0.5 flex-1 mx-4 transition-all ${isCompleted ? "bg-green-600" : "bg-secondary-300"
-                                                    }`}
+                                                className={`h-0.5 flex-1 mx-4 transition-all ${
+                                                    isCompleted ? "bg-green-600" : "bg-secondary-300"
+                                                }`}
                                             />
                                         )}
                                     </div>
@@ -134,7 +170,6 @@ export default function CreateProductPage() {
                                 key="step1"
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
                             >
                                 <Card padding="lg">
                                     <h2 className="font-serif font-bold text-2xl text-earth-900 mb-6">
@@ -143,49 +178,41 @@ export default function CreateProductPage() {
 
                                     <div className="space-y-6">
                                         <Input
-                                            label="Product Name"
-                                            placeholder="e.g., Organic Rose Face Cream"
+                                            label="Product Name *"
+                                            placeholder="e.g., Luna Botanica Vivid Glow Face Cream"
                                             value={productData.name}
                                             onChange={(e) =>
                                                 setProductData({ ...productData, name: e.target.value })
                                             }
-                                            required
                                         />
 
                                         <Input
-                                            label="Batch Number"
-                                            placeholder="e.g., PROD-2024-001"
-                                            value={productData.batchNumber}
+                                            label="Short Description *"
+                                            placeholder="e.g., Nourishing organic face cream for all skin types"
+                                            value={productData.shortDescription}
                                             onChange={(e) =>
-                                                setProductData({
-                                                    ...productData,
-                                                    batchNumber: e.target.value,
-                                                })
+                                                setProductData({ ...productData, shortDescription: e.target.value })
                                             }
-                                            required
                                         />
 
                                         <div>
                                             <label className="block text-sm font-medium text-earth-700 mb-2">
-                                                Description
+                                                Long Description
                                             </label>
                                             <textarea
                                                 rows={4}
                                                 className="w-full px-4 py-3 rounded-2xl border-2 border-secondary-300 bg-white/50 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 transition-all"
-                                                placeholder="Describe your product..."
+                                                placeholder="Detailed product description..."
                                                 value={productData.description}
                                                 onChange={(e) =>
-                                                    setProductData({
-                                                        ...productData,
-                                                        description: e.target.value,
-                                                    })
+                                                    setProductData({ ...productData, description: e.target.value })
                                                 }
                                             />
                                         </div>
 
                                         <div className="grid md:grid-cols-2 gap-6">
                                             <Select
-                                                label="Product Category"
+                                                label="Product Category *"
                                                 options={[
                                                     { value: "face-cream", label: "Face Cream" },
                                                     { value: "serum", label: "Serum" },
@@ -194,18 +221,16 @@ export default function CreateProductPage() {
                                                     { value: "moisturizer", label: "Moisturizer" },
                                                     { value: "toner", label: "Toner" },
                                                     { value: "eye-cream", label: "Eye Cream" },
+                                                    { value: "exfoliator", label: "Exfoliator" },
                                                 ]}
                                                 value={productData.category}
                                                 onChange={(e) =>
-                                                    setProductData({
-                                                        ...productData,
-                                                        category: e.target.value,
-                                                    })
+                                                    setProductData({ ...productData, category: e.target.value })
                                                 }
                                             />
 
                                             <Select
-                                                label="Skin Type"
+                                                label="Skin Type *"
                                                 options={[
                                                     { value: "all", label: "All Skin Types" },
                                                     { value: "dry", label: "Dry Skin" },
@@ -216,35 +241,30 @@ export default function CreateProductPage() {
                                                 ]}
                                                 value={productData.skinType}
                                                 onChange={(e) =>
-                                                    setProductData({
-                                                        ...productData,
-                                                        skinType: e.target.value,
-                                                    })
+                                                    setProductData({ ...productData, skinType: e.target.value })
                                                 }
                                             />
                                         </div>
 
-                                        <div className="grid md:grid-cols-2 gap-6">
-                                            <Input
-                                                type="number"
-                                                label="Quantity"
-                                                placeholder="100"
-                                                value={productData.quantity}
-                                                onChange={(e) =>
-                                                    setProductData({
-                                                        ...productData,
-                                                        quantity: e.target.value,
-                                                    })
-                                                }
-                                                required
-                                            />
+                                        <div className="grid md:grid-cols-3 gap-6">
+                                            <div className="md:col-span-2">
+                                                <Input
+                                                    type="number"
+                                                    label="Total Units *"
+                                                    placeholder="100"
+                                                    value={productData.quantity}
+                                                    onChange={(e) =>
+                                                        setProductData({ ...productData, quantity: e.target.value })
+                                                    }
+                                                />
+                                            </div>
                                             <Select
                                                 label="Unit"
                                                 options={[
-                                                    { value: "ml", label: "Milliliters (ml)" },
-                                                    { value: "L", label: "Liters (L)" },
-                                                    { value: "g", label: "Grams (g)" },
-                                                    { value: "kg", label: "Kilograms (kg)" },
+                                                    { value: "ml", label: "ml" },
+                                                    { value: "L", label: "L" },
+                                                    { value: "g", label: "g" },
+                                                    { value: "kg", label: "kg" },
                                                 ]}
                                                 value={productData.unit}
                                                 onChange={(e) =>
@@ -253,30 +273,32 @@ export default function CreateProductPage() {
                                             />
                                         </div>
 
+                                        <Input
+                                            type="number"
+                                            label="Retail Price (LKR)"
+                                            placeholder="e.g., 2500"
+                                            value={productData.retailPrice}
+                                            onChange={(e) =>
+                                                setProductData({ ...productData, retailPrice: e.target.value })
+                                            }
+                                        />
+
                                         <div className="grid md:grid-cols-2 gap-6">
                                             <Input
                                                 type="date"
-                                                label="Manufactured Date"
+                                                label="Manufactured Date *"
                                                 value={productData.manufacturedDate}
                                                 onChange={(e) =>
-                                                    setProductData({
-                                                        ...productData,
-                                                        manufacturedDate: e.target.value,
-                                                    })
+                                                    setProductData({ ...productData, manufacturedDate: e.target.value })
                                                 }
-                                                required
                                             />
                                             <Input
                                                 type="date"
-                                                label="Expiry Date"
+                                                label="Expiry Date *"
                                                 value={productData.expiryDate}
                                                 onChange={(e) =>
-                                                    setProductData({
-                                                        ...productData,
-                                                        expiryDate: e.target.value,
-                                                    })
+                                                    setProductData({ ...productData, expiryDate: e.target.value })
                                                 }
-                                                required
                                             />
                                         </div>
 
@@ -286,27 +308,26 @@ export default function CreateProductPage() {
                                             onClick={handleNext}
                                             rightIcon={<ArrowRight className="w-5 h-5" />}
                                         >
-                                            Continue to Ingredients
+                                            Continue to Select Ingredients
                                         </Button>
                                     </div>
                                 </Card>
                             </motion.div>
                         )}
 
-                        {/* Step 2: Select Ingredients */}
+                        {/* Step 2: Select Ingredient Batches */}
                         {currentStep === 2 && (
                             <motion.div
                                 key="step2"
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
                             >
                                 <Card padding="lg">
                                     <h2 className="font-serif font-bold text-2xl text-earth-900 mb-2">
-                                        Select Ingredients
+                                        Select Ingredient Batches
                                     </h2>
                                     <p className="text-earth-600 mb-6">
-                                        Choose certified organic ingredients for your product
+                                        Choose supplier ingredient batches for this product. Each batch already has certificates assigned by the supplier.
                                     </p>
 
                                     {selectedIngredients.length === 0 && (
@@ -315,11 +336,10 @@ export default function CreateProductPage() {
                                                 <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                                                 <div>
                                                     <p className="font-medium text-amber-900 mb-1">
-                                                        No ingredients selected
+                                                        No ingredient batches selected
                                                     </p>
                                                     <p className="text-sm text-amber-700">
-                                                        You must select at least one certified ingredient to
-                                                        create a product batch.
+                                                        You must select at least one ingredient batch to create a product batch.
                                                     </p>
                                                 </div>
                                             </div>
@@ -360,7 +380,6 @@ export default function CreateProductPage() {
                                 key="step3"
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
                                 className="space-y-6"
                             >
                                 {/* Product Summary */}
@@ -371,32 +390,28 @@ export default function CreateProductPage() {
                                     <div className="grid md:grid-cols-2 gap-6">
                                         <div>
                                             <p className="text-sm text-earth-600 mb-1">Product Name</p>
-                                            <p className="font-semibold text-earth-900">
-                                                {productData.name}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-earth-600 mb-1">Batch Number</p>
-                                            <p className="font-semibold text-earth-900">
-                                                {productData.batchNumber}
-                                            </p>
+                                            <p className="font-semibold text-earth-900">{productData.name}</p>
                                         </div>
                                         <div>
                                             <p className="text-sm text-earth-600 mb-1">Category</p>
                                             <p className="font-semibold text-earth-900 capitalize">
-                                                {productData.category.replace("-", " ")}
+                                                {productData.category.replace(/-/g, " ")}
                                             </p>
                                         </div>
                                         <div>
                                             <p className="text-sm text-earth-600 mb-1">Skin Type</p>
-                                            <p className="font-semibold text-earth-900 capitalize">
-                                                {productData.skinType}
+                                            <p className="font-semibold text-earth-900 capitalize">{productData.skinType}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-earth-600 mb-1">Total Units</p>
+                                            <p className="font-semibold text-earth-900">
+                                                {productData.quantity} {productData.unit}
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="text-sm text-earth-600 mb-1">Quantity</p>
+                                            <p className="text-sm text-earth-600 mb-1">Manufactured Date</p>
                                             <p className="font-semibold text-earth-900">
-                                                {productData.quantity} {productData.unit}
+                                                {new Date(productData.manufacturedDate).toLocaleDateString()}
                                             </p>
                                         </div>
                                         <div>
@@ -405,48 +420,108 @@ export default function CreateProductPage() {
                                                 {new Date(productData.expiryDate).toLocaleDateString()}
                                             </p>
                                         </div>
+                                        {productData.retailPrice && (
+                                            <div>
+                                                <p className="text-sm text-earth-600 mb-1">Retail Price</p>
+                                                <p className="font-semibold text-earth-900">
+                                                    LKR {parseFloat(productData.retailPrice).toLocaleString()}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="mt-6 pt-6 border-t border-secondary-200">
+                                        <p className="text-sm text-earth-600 mb-1">Short Description</p>
+                                        <p className="text-earth-700">{productData.shortDescription}</p>
                                     </div>
                                     {productData.description && (
-                                        <div className="mt-6 pt-6 border-t border-secondary-200">
-                                            <p className="text-sm text-earth-600 mb-2">Description</p>
+                                        <div className="mt-4">
+                                            <p className="text-sm text-earth-600 mb-1">Long Description</p>
                                             <p className="text-earth-700">{productData.description}</p>
                                         </div>
                                     )}
                                 </Card>
 
-                                {/* Selected Ingredients */}
+                                {/* Selected Ingredient Batches */}
                                 <Card padding="lg">
                                     <h2 className="font-serif font-bold text-2xl text-earth-900 mb-6">
-                                        Ingredients ({selectedIngredients.length})
+                                        Ingredient Batches ({selectedIngredients.length})
                                     </h2>
                                     <div className="space-y-4">
-                                        {selectedIngredients.map((ingredient) => (
-                                            <div
-                                                key={ingredient.id}
-                                                className="p-4 bg-secondary-50 rounded-xl"
-                                            >
-                                                <div className="flex items-start justify-between">
-                                                    <div>
-                                                        <h3 className="font-semibold text-earth-900">
-                                                            {ingredient.name}
-                                                        </h3>
-                                                        <p className="text-sm text-earth-600">
-                                                            {ingredient.batchNumber} • {ingredient.supplier}
-                                                        </p>
+                                        {selectedIngredients.map((ing) => {
+                                            const hasCerts = ing.certificates?.length > 0;
+                                            return (
+                                                <div
+                                                    key={ing._id}
+                                                    className="p-4 border-2 border-secondary-200 rounded-xl"
+                                                >
+                                                    <div className="flex items-start justify-between mb-3">
+                                                        <div>
+                                                            <h3 className="font-semibold text-earth-900">
+                                                                {ing.ingredientName}
+                                                            </h3>
+                                                            <p className="text-sm text-earth-500 font-mono">
+                                                                {ing.batchNumber}
+                                                            </p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="font-semibold text-primary-600">
+                                                                {ing.quantityUsed.value} {ing.quantityUsed.unit}
+                                                            </p>
+                                                            <p className="text-xs text-earth-500">quantity to use</p>
+                                                        </div>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <p className="font-semibold text-primary-600">
-                                                            {ingredient.quantityUsed || "10"} ml
+                                                    <div className="flex flex-wrap items-center gap-3 text-sm text-earth-600">
+                                                        <span className="flex items-center gap-1">
+                                                            <MapPin className="w-3.5 h-3.5" />
+                                                            {ing.origin}
+                                                        </span>
+                                                        <span>Supplier: <strong>{ing.supplier}</strong></span>
+                                                    </div>
+                                                    {/* Certificates */}
+                                                    <div className="mt-3 pt-3 border-t border-secondary-100">
+                                                        <p className="text-xs font-semibold text-earth-500 uppercase tracking-wider mb-2">
+                                                            Certificates
                                                         </p>
-                                                        <p className="text-sm text-earth-600">
-                                                            {ingredient.certificates} certificates
-                                                        </p>
+                                                        {hasCerts ? (
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {ing.certificates.map((cert: any) => {
+                                                                    const isExpired = cert.expiryDate && new Date(cert.expiryDate) < new Date();
+                                                                    return (
+                                                                        <span
+                                                                            key={cert._id || cert}
+                                                                            className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${
+                                                                                isExpired
+                                                                                    ? "bg-red-100 text-red-700"
+                                                                                    : "bg-green-100 text-green-700"
+                                                                            }`}
+                                                                        >
+                                                                            <FileText className="w-3 h-3" />
+                                                                            {cert.certificateName || cert.certificateType || "Certificate"}
+                                                                            {cert.issuingAuthority ? ` · ${cert.issuingAuthority}` : ""}
+                                                                        </span>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex items-center gap-2 text-amber-700">
+                                                                <AlertCircle className="w-4 h-4" />
+                                                                <span className="text-sm">No certificates assigned to this batch</span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </Card>
+
+                                {/* Error */}
+                                {createError && (
+                                    <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+                                        <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                                        <p className="text-sm text-red-800">{createError}</p>
+                                    </div>
+                                )}
 
                                 {/* Actions */}
                                 <div className="flex gap-4">
@@ -455,6 +530,7 @@ export default function CreateProductPage() {
                                         size="lg"
                                         className="flex-1"
                                         onClick={handleBack}
+                                        disabled={creating}
                                     >
                                         Back
                                     </Button>
@@ -462,9 +538,18 @@ export default function CreateProductPage() {
                                         size="lg"
                                         className="flex-1"
                                         onClick={handleCreate}
-                                        leftIcon={<Save className="w-5 h-5" />}
+                                        disabled={creating}
+                                        leftIcon={creating ? undefined : <Save className="w-5 h-5" />}
                                     >
-                                        Create Product Batch
+                                        {creating ? (
+                                            <span className="flex items-center gap-2">
+                                                <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                                                </svg>
+                                                Creating...
+                                            </span>
+                                        ) : "Create Product Batch"}
                                     </Button>
                                 </div>
                             </motion.div>

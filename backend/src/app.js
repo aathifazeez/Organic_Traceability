@@ -14,6 +14,8 @@ const productRoutes = require('./routes/product.routes');
 const qrRoutes = require('./routes/qr.routes');
 const fileRoutes = require('./routes/file.routes');
 const orderRoutes = require('./routes/order.routes');
+const reportRoutes = require('./routes/report.routes');
+const publicRoutes = require('./routes/public.routes');
 
 const { errorHandler, notFoundHandler } = require('./middleware/error.middleware');
 
@@ -93,6 +95,8 @@ app.use(`/api/${API_VERSION}/products`, productRoutes);
 app.use(`/api/${API_VERSION}/qr`, qrRoutes);
 app.use(`/api/${API_VERSION}/files`, fileRoutes);
 app.use(`/api/${API_VERSION}/orders`, orderRoutes);
+app.use(`/api/${API_VERSION}/reports`, reportRoutes);
+app.use(`/api/${API_VERSION}/public`, publicRoutes);
 // app.use(`/api/${API_VERSION}/users`, require('./routes/user.routes'));
 // ... more routes
 

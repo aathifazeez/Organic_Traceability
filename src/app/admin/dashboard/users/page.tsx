@@ -1,90 +1,109 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, Search, Filter, UserPlus } from "lucide-react";
+import { Users, Search, Filter, UserPlus, Loader2 } from "lucide-react";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import UserCard from "@/components/admin/UserCard";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Button from "@/components/ui/Button";
-
-// Mock users data
-const mockUsers = [
-    {
-        id: "1",
-        name: "Emma Wilson",
-        email: "emma.wilson@example.com",
-        role: "customer",
-        status: "approved",
-        joinedDate: "2024-01-15",
-        avatar: "https://i.pravatar.cc/150?img=47",
-    },
-    {
-        id: "2",
-        name: "Natural Oils Co.",
-        email: "contact@naturaloils.com",
-        role: "supplier",
-        status: "pending",
-        joinedDate: "2024-01-29",
-    },
-    {
-        id: "3",
-        name: "PureGlow Organics",
-        email: "info@pureglow.com",
-        role: "manufacturer",
-        status: "approved",
-        joinedDate: "2024-01-10",
-        avatar: "https://i.pravatar.cc/150?img=33",
-    },
-    {
-        id: "4",
-        name: "Michael Chen",
-        email: "michael.chen@example.com",
-        role: "customer",
-        status: "approved",
-        joinedDate: "2024-01-22",
-        avatar: "https://i.pravatar.cc/150?img=12",
-    },
-    {
-        id: "5",
-        name: "EcoBeauty Manufacturing",
-        email: "info@ecobeauty.com",
-        role: "manufacturer",
-        status: "pending",
-        joinedDate: "2024-01-28",
-    },
-    {
-        id: "6",
-        name: "Atlas Organic Oils",
-        email: "sales@atlasoils.com",
-        role: "supplier",
-        status: "approved",
-        joinedDate: "2024-01-05",
-    },
-];
+import { apiRequest } from "@/lib/auth";
 
 export default function UsersPage() {
-    const [users, setUsers] = useState(mockUsers);
+    const [users, setUsers] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [roleFilter, setRoleFilter] = useState("all");
     const [statusFilter, setStatusFilter] = useState("all");
 
-    const handleApprove = (id: string) => {
-        setUsers(
-            users.map((user) =>
-                user.id === id ? { ...user, status: "approved" } : user
-            )
-        );
+    const fetchUsers = async () => {
+        try {
+            setLoading(true);
+            const params = new URLSearchParams();
+            if (statusFilter !== "all") params.set("status", statusFilter);
+            if (roleFilter !== "all") params.set("role", roleFilter);
+
+            const res = await apiRequest(`/users?${params.toString()}`);
+            if (res.success) {
+                setUsers(
+                    (res.data || []).map((user: any) => ({
+                        id: user._id || user.id,
+                        name: user.companyName || user.name,
+                        email: user.email,
+                        role: user.role,
+                        status: user.status,
+                        joinedDate: user.createdAt
+                            ? new Date(user.createdAt).toISOString().split("T")[0]
+                            : "",
+                        avatar: user.avatar || undefined,
+                    }))
+                );
+            }
+        } catch (error) {
+            console.error("Failed to fetch users:", error);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleReject = (id: string) => {
-        setUsers(
-            users.map((user) =>
-                user.id === id ? { ...user, status: "rejected" } : user
-            )
-        );
+    useEffect(() => {
+        fetchUsers();
+    }, [statusFilter, roleFilter]);
+
+    const handleApprove = async (id: string) => {
+        try {
+            const res = await apiRequest(`/users/${id}/approve`, {
+                method: "PATCH",
+            });
+            if (res.success) {
+                setUsers(
+                    users.map((user) =>
+                        user.id === id ? { ...user, status: "approved" } : user
+                    )
+                );
+            } else {
+                alert(res.message || "Failed to approve user");
+            }
+        } catch (error) {
+            console.error("Error approving user:", error);
+            alert("Failed to approve user.");
+        }
+    };
+
+    const handleReject = async (id: string) => {
+        try {
+            const res = await apiRequest(`/users/${id}/reject`, {
+                method: "PATCH",
+            });
+            if (res.success) {
+                setUsers(
+                    users.map((user) =>
+                        user.id === id ? { ...user, status: "rejected" } : user
+                    )
+                );
+            } else {
+                alert(res.message || "Failed to reject user");
+            }
+        } catch (error) {
+            console.error("Error rejecting user:", error);
+            alert("Failed to reject user.");
+        }
+    };
+
+    const handleRemove = async (id: string) => {
+        try {
+            const res = await apiRequest(`/users/${id}`, { method: "DELETE" });
+            if (res.success) {
+                setUsers(users.filter((user) => user.id !== id));
+            } else {
+                alert(res.message || "Failed to remove user");
+            }
+        } catch (error) {
+            console.error("Error removing user:", error);
+            alert("Failed to remove user.");
+        }
     };
 
     const filteredUsers = users.filter((user) => {
@@ -92,10 +111,7 @@ export default function UsersPage() {
             user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             user.email.toLowerCase().includes(searchQuery.toLowerCase());
 
-        const matchesRole = roleFilter === "all" || user.role === roleFilter;
-        const matchesStatus = statusFilter === "all" || user.status === statusFilter;
-
-        return matchesSearch && matchesRole && matchesStatus;
+        return matchesSearch;
     });
 
     const stats = {
@@ -126,9 +142,6 @@ export default function UsersPage() {
                                     Manage all users across the platform
                                 </p>
                             </div>
-                            <Button leftIcon={<UserPlus className="w-5 h-5" />}>
-                                Add User
-                            </Button>
                         </div>
 
                         {/* Stats */}
@@ -166,9 +179,7 @@ export default function UsersPage() {
                                     <Select
                                         options={[
                                             { value: "all", label: "All Roles" },
-                                            { value: "customer", label: "Customer" },
                                             { value: "supplier", label: "Supplier" },
-                                            { value: "manufacturer", label: "Manufacturer" },
                                             { value: "admin", label: "Admin" },
                                         ]}
                                         value={roleFilter}
@@ -191,29 +202,40 @@ export default function UsersPage() {
                         </Card>
                     </motion.div>
 
-                    {/* Users Grid */}
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredUsers.map((user, index) => (
-                            <motion.div
-                                key={user.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.1 }}
-                            >
-                                <UserCard
-                                    user={user}
-                                    onApprove={handleApprove}
-                                    onReject={handleReject}
-                                />
-                            </motion.div>
-                        ))}
-                    </div>
-
-                    {filteredUsers.length === 0 && (
-                        <div className="text-center py-16">
-                            <Users className="w-16 h-16 text-earth-400 mx-auto mb-4" />
-                            <p className="text-earth-600">No users found</p>
+                    {/* Loading State */}
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center py-16">
+                            <Loader2 className="w-12 h-12 text-primary-600 animate-spin mb-4" />
+                            <p className="text-earth-600 text-lg">Loading users...</p>
                         </div>
+                    ) : (
+                        <>
+                            {/* Users Grid */}
+                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {filteredUsers.map((user, index) => (
+                                    <motion.div
+                                        key={user.id}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.1 }}
+                                    >
+                                        <UserCard
+                                            user={user}
+                                            onApprove={handleApprove}
+                                            onReject={handleReject}
+                                            onRemove={handleRemove}
+                                        />
+                                    </motion.div>
+                                ))}
+                            </div>
+
+                            {filteredUsers.length === 0 && (
+                                <div className="text-center py-16">
+                                    <Users className="w-16 h-16 text-earth-400 mx-auto mb-4" />
+                                    <p className="text-earth-600">No users found</p>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </main>

@@ -27,22 +27,21 @@ export default function LoginPage() {
         setError("");
         setIsLoading(true);
 
-        // Simulate API call delay
-        setTimeout(() => {
-            const result = login(formData.email, formData.password);
+        try {
+            const result = await login(formData.email, formData.password);
 
             if (result.success && result.user) {
-                // Save user to localStorage (in production, use JWT)
-                saveCurrentUser(result.user);
-
-                // Redirect based on role
+                saveCurrentUser(result.user, result.token);
                 const redirectUrl = getRoleRedirect(result.user.role);
                 router.push(redirectUrl);
             } else {
                 setError(result.error || "Login failed. Please try again.");
                 setIsLoading(false);
             }
-        }, 1000);
+        } catch {
+            setError("An unexpected error occurred. Please try again.");
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -51,44 +50,6 @@ export default function LoginPage() {
             subtitle="Sign in to your OrganicTrace account"
         >
             <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Demo Credentials Info */}
-                <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-4 bg-primary-50 border border-primary-200 rounded-xl"
-                >
-                    <p className="font-medium text-primary-900 mb-2 text-sm">
-                        Demo Credentials:
-                    </p>
-                    <div className="text-sm text-primary-800 space-y-1">
-                        <div className="flex items-center justify-between">
-                            <span className="font-semibold">Supplier:</span>
-                            <code className="bg-white px-2 py-0.5 rounded text-xs">
-                                supplier@organictrace.com
-                            </code>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="font-semibold">Password:</span>
-                            <code className="bg-white px-2 py-0.5 rounded text-xs">
-                                supplier123
-                            </code>
-                        </div>
-                        <div className="border-t border-primary-200 my-2"></div>
-                        <div className="flex items-center justify-between">
-                            <span className="font-semibold">Admin:</span>
-                            <code className="bg-white px-2 py-0.5 rounded text-xs">
-                                admin@organictrace.com
-                            </code>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="font-semibold">Password:</span>
-                            <code className="bg-white px-2 py-0.5 rounded text-xs">
-                                admin123
-                            </code>
-                        </div>
-                    </div>
-                </motion.div>
-
                 {/* Error Message */}
                 {error && (
                     <motion.div

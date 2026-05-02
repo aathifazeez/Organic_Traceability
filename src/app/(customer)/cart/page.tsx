@@ -1,81 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag, ArrowRight, Tag, Truck, Gift } from "lucide-react";
+import { ShoppingBag, ArrowRight, Truck, Gift } from "lucide-react";
 import Link from "next/link";
 import CartItem from "@/components/customer/CartItem";
 import Card from "@/components/ui/Card";
-import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/shared/EmptyState";
-
-// Mock cart data - organic skincare products
-const initialCartItems = [
-    {
-        id: "1",
-        name: "Organic Rose Face Cream",
-        variant: "50ml",
-        price: 45.99,
-        originalPrice: 59.99,
-        quantity: 2,
-        image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=300&q=80",
-        inStock: true,
-        skinType: "Dry",
-    },
-    {
-        id: "2",
-        name: "Vitamin C Serum",
-        variant: "30ml",
-        price: 38.50,
-        quantity: 1,
-        image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=300&q=80",
-        inStock: true,
-        skinType: "All Types",
-    },
-    {
-        id: "3",
-        name: "Hydrating Face Mask",
-        variant: "100ml",
-        price: 28.00,
-        originalPrice: 35.00,
-        quantity: 1,
-        image: "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=300&q=80",
-        inStock: true,
-        skinType: "Sensitive",
-    },
-];
+import { getCart, updateCartItem, removeCartItem, CartItem as CartItemType } from "@/lib/cart";
 
 export default function CartPage() {
-    const [cartItems, setCartItems] = useState(initialCartItems);
-    const [couponCode, setCouponCode] = useState("");
-    const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+    const [cartItems, setCartItems] = useState<CartItemType[]>([]);
+
+    useEffect(() => {
+        setCartItems(getCart());
+    }, []);
 
     const handleUpdateQuantity = (id: string, quantity: number) => {
-        setCartItems((items) =>
-            items.map((item) => (item.id === id ? { ...item, quantity } : item))
-        );
+        const updated = updateCartItem(id, quantity);
+        setCartItems(updated);
     };
 
     const handleRemove = (id: string) => {
-        setCartItems((items) => items.filter((item) => item.id !== id));
+        const updated = removeCartItem(id);
+        setCartItems(updated);
     };
 
-    const handleApplyCoupon = () => {
-        if (couponCode.toUpperCase() === "SAVE10") {
-            setAppliedCoupon("SAVE10");
-        }
-    };
+    const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const shipping = subtotal > 15000 ? 0 : 500;
+    const tax = subtotal * 0.1;
+    const total = subtotal + shipping + tax;
 
-    // Calculate totals
-    const subtotal = cartItems.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0
-    );
-    const discount = appliedCoupon ? subtotal * 0.1 : 0;
-    const shipping = subtotal > 50 ? 0 : 5.99;
-    const tax = (subtotal - discount) * 0.08;
-    const total = subtotal - discount + shipping + tax;
+    // Map CartItem to the shape CartItem component expects
+    const mappedItems = cartItems.map((item) => ({
+        id: item.productId,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image,
+        inStock: item.quantity <= item.unitsAvailable,
+    }));
 
     if (cartItems.length === 0) {
         return (
@@ -94,18 +59,10 @@ export default function CartPage() {
     return (
         <div className="min-h-screen bg-gradient-cream">
             <div className="container-custom py-12">
-                {/* Header */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-8"
-                >
-                    <h1 className="font-serif font-bold text-4xl text-earth-900 mb-2">
-                        Shopping Cart
-                    </h1>
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+                    <h1 className="font-serif font-bold text-4xl text-earth-900 mb-2">Shopping Cart</h1>
                     <p className="text-earth-600">
-                        {cartItems.length} {cartItems.length === 1 ? "item" : "items"} in
-                        your cart
+                        {cartItems.length} {cartItems.length === 1 ? "item" : "items"} in your cart
                     </p>
                 </motion.div>
 
@@ -113,7 +70,7 @@ export default function CartPage() {
                     {/* Cart Items */}
                     <div className="lg:col-span-2 space-y-4">
                         <AnimatePresence mode="popLayout">
-                            {cartItems.map((item) => (
+                            {mappedItems.map((item) => (
                                 <CartItem
                                     key={item.id}
                                     item={item}
@@ -123,23 +80,19 @@ export default function CartPage() {
                             ))}
                         </AnimatePresence>
 
-                        {/* Free Shipping Progress */}
                         {shipping > 0 && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                            >
+                            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                                 <Card className="bg-primary-50 border-primary-200">
                                     <div className="flex items-center gap-3 mb-3">
                                         <Truck className="w-5 h-5 text-primary-600" />
                                         <p className="text-sm font-medium text-earth-900">
-                                            Add ${(50 - subtotal).toFixed(2)} more for FREE shipping!
+                                            Add LKR {(15000 - subtotal).toLocaleString()} more for FREE shipping!
                                         </p>
                                     </div>
                                     <div className="w-full bg-white rounded-full h-2 overflow-hidden">
                                         <motion.div
                                             initial={{ width: 0 }}
-                                            animate={{ width: `${(subtotal / 50) * 100}%` }}
+                                            animate={{ width: `${Math.min((subtotal / 15000) * 100, 100)}%` }}
                                             transition={{ duration: 0.5 }}
                                             className="h-full bg-primary-600"
                                         />
@@ -151,98 +104,35 @@ export default function CartPage() {
 
                     {/* Order Summary */}
                     <div className="lg:col-span-1">
-                        <motion.div
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="sticky top-24 space-y-6"
-                        >
-                            {/* Coupon Code */}
+                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="sticky top-24 space-y-6">
                             <Card padding="lg">
-                                <h3 className="font-semibold text-earth-900 mb-4 flex items-center gap-2">
-                                    <Tag className="w-5 h-5 text-primary-600" />
-                                    Apply Coupon Code
-                                </h3>
-                                <div className="flex gap-2">
-                                    <Input
-                                        placeholder="Enter code"
-                                        value={couponCode}
-                                        onChange={(e) => setCouponCode(e.target.value)}
-                                        disabled={!!appliedCoupon}
-                                    />
-                                    <Button
-                                        variant={appliedCoupon ? "outline" : "primary"}
-                                        onClick={handleApplyCoupon}
-                                        disabled={!!appliedCoupon}
-                                    >
-                                        {appliedCoupon ? "Applied" : "Apply"}
-                                    </Button>
-                                </div>
-                                {appliedCoupon && (
-                                    <p className="mt-2 text-sm text-green-600 font-medium">
-                                        ✓ Coupon "{appliedCoupon}" applied! 10% off
-                                    </p>
-                                )}
-                                <p className="mt-3 text-xs text-earth-600">
-                                    Try code: <span className="font-semibold">SAVE10</span> for 10%
-                                    off
-                                </p>
-                            </Card>
-
-                            {/* Order Summary */}
-                            <Card padding="lg">
-                                <h3 className="font-serif font-bold text-xl text-earth-900 mb-6">
-                                    Order Summary
-                                </h3>
-
+                                <h3 className="font-serif font-bold text-xl text-earth-900 mb-6">Order Summary</h3>
                                 <div className="space-y-4 mb-6">
                                     <div className="flex justify-between text-earth-700">
                                         <span>Subtotal</span>
-                                        <span className="font-semibold">${subtotal.toFixed(2)}</span>
+                                        <span className="font-semibold">LKR {subtotal.toLocaleString()}</span>
                                     </div>
-
-                                    {discount > 0 && (
-                                        <div className="flex justify-between text-green-600">
-                                            <span>Discount</span>
-                                            <span className="font-semibold">
-                                                -${discount.toFixed(2)}
-                                            </span>
-                                        </div>
-                                    )}
-
                                     <div className="flex justify-between text-earth-700">
                                         <span>Shipping</span>
-                                        <span className="font-semibold">
-                                            {shipping === 0 ? "FREE" : `$${shipping.toFixed(2)}`}
-                                        </span>
+                                        <span className="font-semibold">{shipping === 0 ? "FREE" : `LKR ${shipping.toLocaleString()}`}</span>
                                     </div>
-
                                     <div className="flex justify-between text-earth-700">
-                                        <span>Tax (8%)</span>
-                                        <span className="font-semibold">${tax.toFixed(2)}</span>
+                                        <span>Tax (10%)</span>
+                                        <span className="font-semibold">LKR {Math.round(tax).toLocaleString()}</span>
                                     </div>
-
                                     <div className="pt-4 border-t-2 border-secondary-200">
                                         <div className="flex justify-between items-center">
-                                            <span className="font-serif font-bold text-xl text-earth-900">
-                                                Total
-                                            </span>
-                                            <span className="font-serif font-bold text-2xl text-primary-600">
-                                                ${total.toFixed(2)}
-                                            </span>
+                                            <span className="font-serif font-bold text-xl text-earth-900">Total</span>
+                                            <span className="font-serif font-bold text-2xl text-primary-600">LKR {Math.round(total).toLocaleString()}</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <Link href="/checkout">
-                                    <Button
-                                        size="lg"
-                                        className="w-full mb-3"
-                                        rightIcon={<ArrowRight className="w-5 h-5" />}
-                                    >
+                                    <Button size="lg" className="w-full mb-3" rightIcon={<ArrowRight className="w-5 h-5" />}>
                                         Proceed to Checkout
                                     </Button>
                                 </Link>
-
                                 <Link href="/products">
                                     <Button variant="outline" size="lg" className="w-full">
                                         Continue Shopping
@@ -250,11 +140,8 @@ export default function CartPage() {
                                 </Link>
                             </Card>
 
-                            {/* Benefits */}
                             <Card padding="lg" className="bg-gradient-to-br from-primary-50 to-secondary-50 border-primary-200">
-                                <h4 className="font-semibold text-earth-900 mb-4">
-                                    Why Shop With Us?
-                                </h4>
+                                <h4 className="font-semibold text-earth-900 mb-4">Why Shop With Us?</h4>
                                 <ul className="space-y-3 text-sm text-earth-700">
                                     <li className="flex items-start gap-2">
                                         <Gift className="w-5 h-5 text-primary-600 flex-shrink-0" />
@@ -262,7 +149,7 @@ export default function CartPage() {
                                     </li>
                                     <li className="flex items-start gap-2">
                                         <Truck className="w-5 h-5 text-primary-600 flex-shrink-0" />
-                                        <span>Free shipping on orders over $50</span>
+                                        <span>Free shipping on orders over LKR 15,000</span>
                                     </li>
                                     <li className="flex items-start gap-2">
                                         <ShoppingBag className="w-5 h-5 text-primary-600 flex-shrink-0" />

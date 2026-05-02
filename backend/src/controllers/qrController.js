@@ -170,6 +170,35 @@ const verifyQRCode = async (req, res) => {
         // Build verification response
         const product = qrCode.productBatch;
 
+        const VALID_CERT_STATUSES = ['valid', 'expiring-soon'];
+
+        const ingredients = product.ingredients.map(ing => {
+            const batch = ing.ingredientBatch;
+            if (!batch) return null;
+
+            const validCerts = (batch.certificates || []).filter(cert =>
+                VALID_CERT_STATUSES.includes(cert.status) && cert.isVerified === true
+            );
+
+            return {
+                ingredientName: batch.ingredientName,
+                batchNumber: batch.batchNumber,
+                supplier: {
+                    name: batch.supplier?.name || '',
+                    companyName: batch.supplier?.companyName || '',
+                },
+                origin: batch.origin?.country || batch.origin || '',
+                qualityGrade: batch.qualityGrade,
+                certificates: validCerts.map(cert => ({
+                    type: cert.certificateType,
+                    number: cert.certificateNumber,
+                    authority: cert.issuingAuthority,
+                    status: cert.status,
+                    expiryDate: cert.expiryDate,
+                })),
+            };
+        }).filter(Boolean);
+
         const verificationData = {
             verified: true,
             qrId: qrCode.qrId,
@@ -183,50 +212,28 @@ const verifyQRCode = async (req, res) => {
                 productionDate: product.productionDate,
                 expiryDate: product.expiryDate,
                 manufacturer: {
-                    name: product.manufacturer?.name,
-                    companyName: product.manufacturer?.companyName,
+                    name: product.manufacturer?.name || '',
+                    companyName: product.manufacturer?.companyName || '',
                 },
                 images: product.images,
                 retailPrice: product.retailPrice,
             },
-            ingredients: product.ingredients.map(ing => {
-                const batch = ing.ingredientBatch;
-                return {
-                    ingredientName: batch.ingredientName,
-                    batchNumber: batch.batchNumber,
-                    supplier: {
-                        name: batch.supplier.name,
-                        companyName: batch.supplier.companyName,
-                    },
-                    origin: batch.origin,
-                    qualityGrade: batch.qualityGrade,
-                    certificates: batch.certificates.map(cert => ({
-                        type: cert.certificateType,
-                        number: cert.certificateNumber,
-                        authority: cert.issuingAuthority,
-                        status: cert.status,
-                        expiryDate: cert.expiryDate,
-                    })),
-                };
-            }),
+            ingredients,
             blockchain: {
                 hash: qrCode.blockchainHash,
                 timestamp: qrCode.blockchainTimestamp,
                 verified: qrCode.isVerified,
             },
             certificationSummary: {
-                totalCertificates: product.ingredients.reduce(
-                    (sum, ing) => sum + (ing.ingredientBatch.certificates?.length || 0),
-                    0
+                totalCertificates: ingredients.reduce(
+                    (sum, ing) => sum + ing.certificates.length, 0
                 ),
                 uniqueSuppliers: new Set(
-                    product.ingredients.map(ing => ing.ingredientBatch.supplier._id.toString())
+                    ingredients.map(ing => ing.supplier.companyName).filter(Boolean)
                 ).size,
                 certificateTypes: [
                     ...new Set(
-                        product.ingredients.flatMap(ing =>
-                            ing.ingredientBatch.certificates.map(cert => cert.certificateType)
-                        )
+                        ingredients.flatMap(ing => ing.certificates.map(c => c.type))
                     ),
                 ],
             },
@@ -549,6 +556,65 @@ const getQRScans = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Upload a custom QR code image for a product (admin uploads their own QR)
+ * @route   POST /api/v1/qr/upload/:productId
+ * @access  Private (Admin)
+ */
+const uploadQRCode = async (req, res) => {
+    try {
+        const { productId } = req.params;
+        const { qrCodeImage, verificationUrl } = req.body;
+
+        const product = await ProductBatch.findById(productId);
+        if (!product) {
+            return errorResponse(res, 'Product batch not found', HTTP_STATUS.NOT_FOUND);
+        }
+
+        let imageData = qrCodeImage;
+
+        // If a file was uploaded via multipart, convert to base64
+        if (req.file) {
+            const fs = require('fs');
+            const fileBuffer = fs.readFileSync(req.file.path);
+            imageData = `data:${req.file.mimetype};base64,${fileBuffer.toString('base64')}`;
+            fs.unlinkSync(req.file.path);
+        }
+
+        if (!imageData) {
+            return errorResponse(res, 'QR code image is required', HTTP_STATUS.BAD_REQUEST);
+        }
+
+        // Remove existing QR code if present
+        if (product.qrCode) {
+            await QRCode.findByIdAndDelete(product.qrCode);
+        }
+
+        const qrCode = new QRCode({
+            productBatch: productId,
+            generatedBy: req.user._id,
+            qrCodeImage: imageData,
+            qrCodeUrl: verificationUrl || '',
+            verificationUrl: verificationUrl || '',
+            blockchainHash: createBlockchainHash({
+                productBatchId: productId,
+                timestamp: Date.now(),
+                manufacturer: req.user._id.toString(),
+            }),
+        });
+
+        await qrCode.save();
+
+        product.qrCode = qrCode._id;
+        await product.save();
+
+        return successResponse(res, 'QR code uploaded successfully', { qrCode }, HTTP_STATUS.CREATED);
+    } catch (error) {
+        console.error('Upload QR code error:', error);
+        return errorResponse(res, error.message || 'Failed to upload QR code', HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    }
+};
+
 module.exports = {
     generateQRCode,
     verifyQRCode,
@@ -557,4 +623,5 @@ module.exports = {
     deactivateQRCode,
     getQRAnalytics,
     getQRScans,
+    uploadQRCode,
 };

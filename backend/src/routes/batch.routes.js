@@ -9,6 +9,8 @@ const {
     deleteBatch,
     getBatchAnalytics,
     getExpiringBatches,
+    assignCertificate,
+    removeCertificate,
 } = require('../controllers/batchController');
 
 const { authenticate } = require('../middleware/auth.middleware');
@@ -64,6 +66,23 @@ router.delete(
     mongoIdValidation('id'),
     validate,
     deleteBatch
+);
+
+// Certificate assignment
+router.patch(
+    '/:id/certificates',
+    authorize('supplier', 'admin'),
+    mongoIdValidation('id'),
+    validate,
+    assignCertificate
+);
+
+router.delete(
+    '/:id/certificates/:certId',
+    authorize('supplier', 'admin'),
+    mongoIdValidation('id'),
+    validate,
+    removeCertificate
 );
 
 module.exports = router;

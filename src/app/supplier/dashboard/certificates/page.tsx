@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
     Upload,
     Search,
-    Filter,
     FileText,
     AlertCircle,
     CheckCircle,
     Calendar,
+    Loader2,
+    X,
+    Image as ImageIcon,
 } from "lucide-react";
 import SupplierSidebar from "@/components/supplier/SupplierSidebar";
 import CertificateCard from "@/components/supplier/CertificateCard";
@@ -18,133 +20,146 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
+import { apiRequest, getAuthToken } from "@/lib/auth";
 
-// Mock certificates data
-const mockCertificates = [
-    {
-        id: "1",
-        name: "USDA Organic Certificate",
-        fileUrl: "/certificates/usda-organic.pdf",
-        fileName: "USDA_Organic_2024.pdf",
-        issuedBy: "USDA Organic Program",
-        issuedDate: "2024-01-15",
-        expiryDate: "2025-01-15",
-        assignedBatches: ["ARG-2024-001", "RSH-2024-015"],
-        fileSize: "2.4 MB",
-    },
-    {
-        id: "2",
-        name: "Ecocert Organic Certification",
-        fileUrl: "/certificates/ecocert.pdf",
-        fileName: "Ecocert_Certificate_2024.pdf",
-        issuedBy: "Ecocert",
-        issuedDate: "2024-01-10",
-        expiryDate: "2024-02-28",
-        assignedBatches: ["SHB-2024-008", "JOJ-2024-005"],
-        fileSize: "1.8 MB",
-    },
-    {
-        id: "3",
-        name: "Fair Trade Certificate",
-        fileUrl: "/certificates/fairtrade.pdf",
-        fileName: "FairTrade_2024.pdf",
-        issuedBy: "Fair Trade USA",
-        issuedDate: "2023-12-20",
-        expiryDate: "2024-12-20",
-        assignedBatches: ["COC-2024-012"],
-        fileSize: "3.1 MB",
-    },
-    {
-        id: "4",
-        name: "Cosmos Organic Standard",
-        fileUrl: "/certificates/cosmos.pdf",
-        fileName: "COSMOS_Organic_2024.pdf",
-        issuedBy: "Cosmetics Organic Standard",
-        issuedDate: "2024-01-05",
-        expiryDate: "2025-06-30",
-        assignedBatches: ["ARG-2024-001", "ALM-2024-003"],
-        fileSize: "2.9 MB",
-    },
-    {
-        id: "5",
-        name: "Non-GMO Project Verification",
-        fileUrl: "/certificates/non-gmo.pdf",
-        fileName: "NonGMO_Verification_2024.pdf",
-        issuedBy: "Non-GMO Project",
-        issuedDate: "2023-11-15",
-        expiryDate: "2024-11-15",
-        assignedBatches: ["JOJ-2024-005", "ALM-2024-003"],
-        fileSize: "1.5 MB",
-    },
-    {
-        id: "6",
-        name: "EU Organic Certification",
-        fileUrl: "/certificates/eu-organic.pdf",
-        fileName: "EU_Organic_2024.pdf",
-        issuedBy: "European Commission",
-        issuedDate: "2024-01-20",
-        expiryDate: "2025-12-31",
-        assignedBatches: [],
-        fileSize: "2.2 MB",
-    },
-];
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+const SERVER_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1").replace("/api/v1", "");
 
 export default function CertificatesPage() {
-    const [certificates, setCertificates] = useState(mockCertificates);
+    const [certificates, setCertificates] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [filePreview, setFilePreview] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+    const [deleting, setDeleting] = useState<string | null>(null);
 
     // Upload form state
     const [uploadForm, setUploadForm] = useState({
         name: "",
+        certificateType: "",
         issuedBy: "",
         issuedDate: "",
         expiryDate: "",
-        assignedBatches: [] as string[],
     });
 
-    const handleDelete = (id: string) => {
-        if (confirm("Are you sure you want to delete this certificate?")) {
-            setCertificates(certificates.filter((c) => c.id !== id));
+    // Fetch certificates from backend API
+    const fetchCertificates = useCallback(async () => {
+        try {
+            setLoading(true);
+            const res = await apiRequest("/certificates?limit=50");
+            if (res.success) {
+                setCertificates(res.data || []);
+            } else {
+                console.error("Failed to fetch certificates:", res.message);
+            }
+        } catch (error) {
+            console.error("Error fetching certificates:", error);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchCertificates();
+    }, [fetchCertificates]);
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this certificate?")) return;
+
+        try {
+            setDeleting(id);
+            const res = await apiRequest(`/certificates/${id}`, {
+                method: "DELETE",
+            });
+
+            if (res.success) {
+                setCertificates(certificates.filter((c) => (c._id || c.id) !== id));
+            } else {
+                alert(res.message || "Failed to delete certificate");
+            }
+        } catch (error) {
+            console.error("Error deleting certificate:", error);
+            alert("Failed to delete certificate. Please try again.");
+        } finally {
+            setDeleting(null);
         }
     };
 
     const handleView = (id: string) => {
-        console.log("View certificate:", id);
-    };
-
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setSelectedFile(e.target.files[0]);
+        const cert = certificates.find((c) => (c._id || c.id) === id);
+        const url = cert?.documentUrl || cert?.fileUrl;
+        if (url) {
+            window.open(url.startsWith("http") ? url : `${SERVER_URL}${url}`, "_blank");
         }
     };
 
-    const handleUpload = () => {
-        if (!selectedFile) return;
-
-        const newCert = {
-            id: Date.now().toString(),
-            ...uploadForm,
-            fileUrl: `/certificates/${selectedFile.name}`,
-            fileName: selectedFile.name,
-            fileSize: `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB`,
-        };
-
-        setCertificates([newCert, ...certificates]);
-        setIsUploadModalOpen(false);
-        setSelectedFile(null);
-        setUploadForm({
-            name: "",
-            issuedBy: "",
-            issuedDate: "",
-            expiryDate: "",
-            assignedBatches: [],
-        });
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setSelectedFile(file);
+        // Generate preview for image files
+        if (file.type.startsWith("image/")) {
+            const reader = new FileReader();
+            reader.onload = (ev) => setFilePreview(ev.target?.result as string);
+            reader.readAsDataURL(file);
+        } else {
+            setFilePreview(null);
+        }
     };
 
-    // Calculate statistics
+    const handleUpload = async () => {
+        if (!selectedFile || !uploadForm.name) return;
+
+        try {
+            setUploading(true);
+
+            // Use FormData for file upload — field name must be "certificate" (multer config)
+            const formData = new FormData();
+            formData.append("certificate", selectedFile);
+            formData.append("certificateName", uploadForm.name);
+            formData.append("certificateType", uploadForm.certificateType || "USDA Organic");
+            formData.append("issuingAuthority", uploadForm.issuedBy);
+            formData.append("issueDate", uploadForm.issuedDate);
+            formData.append("expiryDate", uploadForm.expiryDate);
+
+            const token = getAuthToken();
+            const res = await fetch(`${API_URL}/certificates`, {
+                method: "POST",
+                headers: {
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: formData,
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                await fetchCertificates();
+                setIsUploadModalOpen(false);
+                setSelectedFile(null);
+                setFilePreview(null);
+                setUploadForm({
+                    name: "",
+                    certificateType: "",
+                    issuedBy: "",
+                    issuedDate: "",
+                    expiryDate: "",
+                });
+            } else {
+                alert(data.message || "Failed to upload certificate");
+            }
+        } catch (error) {
+            console.error("Error uploading certificate:", error);
+            alert("Failed to upload certificate. Please try again.");
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    // Calculate statistics from real data
     const stats = {
         total: certificates.length,
         valid: certificates.filter(
@@ -159,7 +174,31 @@ export default function CertificatesPage() {
         expired: certificates.filter((c) => new Date(c.expiryDate) < new Date()).length,
     };
 
-    const filteredCertificates = certificates.filter((cert) => {
+    // Map backend data to the format CertificateCard expects
+    const mappedCertificates = certificates.map((cert) => {
+        const rawUrl = cert.documentUrl || cert.fileUrl || "";
+        const fullUrl = rawUrl && !rawUrl.startsWith("http") ? `${SERVER_URL}${rawUrl}` : rawUrl;
+        return {
+            id: cert._id || cert.id,
+            name: cert.certificateName || cert.name,
+            fileUrl: fullUrl,
+            fileName: cert.documentName || cert.fileName || cert.certificateName || "",
+            documentType: cert.documentType || cert.fileType || "",
+            issuedBy: cert.issuingAuthority || cert.issuingBody || cert.issuedBy || "",
+            issuedDate: cert.issueDate
+                ? new Date(cert.issueDate).toISOString().split("T")[0]
+                : "",
+            expiryDate: cert.expiryDate
+                ? new Date(cert.expiryDate).toISOString().split("T")[0]
+                : "",
+            assignedBatches: cert.batches?.map((b: any) => b.batchNumber || b) || [],
+            fileSize: cert.documentSize
+                ? `${(cert.documentSize / 1024).toFixed(0)} KB`
+                : cert.fileSize || "N/A",
+        };
+    });
+
+    const filteredCertificates = mappedCertificates.filter((cert) => {
         const matchesSearch =
             cert.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             cert.issuedBy.toLowerCase().includes(searchQuery.toLowerCase());
@@ -293,29 +332,39 @@ export default function CertificatesPage() {
                         </Card>
                     </motion.div>
 
-                    {/* Certificates Grid */}
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredCertificates.map((cert, index) => (
-                            <motion.div
-                                key={cert.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.1 }}
-                            >
-                                <CertificateCard
-                                    certificate={cert}
-                                    onDelete={handleDelete}
-                                    onView={handleView}
-                                />
-                            </motion.div>
-                        ))}
-                    </div>
-
-                    {filteredCertificates.length === 0 && (
-                        <div className="text-center py-16">
-                            <FileText className="w-16 h-16 text-earth-400 mx-auto mb-4" />
-                            <p className="text-earth-600">No certificates found</p>
+                    {/* Loading State */}
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center py-16">
+                            <Loader2 className="w-12 h-12 text-primary-600 animate-spin mb-4" />
+                            <p className="text-earth-600 text-lg">Loading certificates...</p>
                         </div>
+                    ) : (
+                        <>
+                            {/* Certificates Grid */}
+                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {filteredCertificates.map((cert, index) => (
+                                    <motion.div
+                                        key={cert.id}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.1 }}
+                                    >
+                                        <CertificateCard
+                                            certificate={cert}
+                                            onDelete={handleDelete}
+                                            onView={handleView}
+                                        />
+                                    </motion.div>
+                                ))}
+                            </div>
+
+                            {filteredCertificates.length === 0 && (
+                                <div className="text-center py-16">
+                                    <FileText className="w-16 h-16 text-earth-400 mx-auto mb-4" />
+                                    <p className="text-earth-600">No certificates found</p>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </main>
@@ -323,7 +372,11 @@ export default function CertificatesPage() {
             {/* Upload Certificate Modal */}
             <Modal
                 isOpen={isUploadModalOpen}
-                onClose={() => setIsUploadModalOpen(false)}
+                onClose={() => {
+                    setIsUploadModalOpen(false);
+                    setSelectedFile(null);
+                    setFilePreview(null);
+                }}
                 title="Upload Certificate"
                 size="lg"
             >
@@ -331,40 +384,59 @@ export default function CertificatesPage() {
                     {/* File Upload */}
                     <div>
                         <label className="block text-sm font-medium text-earth-700 mb-2">
-                            Certificate File (PDF)
+                            Certificate File
                         </label>
-                        <div className="border-2 border-dashed border-secondary-300 rounded-xl p-8 text-center hover:border-primary-400 transition-colors">
-                            <input
-                                type="file"
-                                accept=".pdf"
-                                onChange={handleFileSelect}
-                                className="hidden"
-                                id="certificate-upload"
-                            />
-                            <label
-                                htmlFor="certificate-upload"
-                                className="cursor-pointer block"
-                            >
-                                <Upload className="w-12 h-12 text-primary-600 mx-auto mb-4" />
+                        <input
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff,.tif,.heic,.heif,.svg"
+                            onChange={handleFileSelect}
+                            className="hidden"
+                            id="certificate-upload"
+                        />
+                        <label htmlFor="certificate-upload" className="cursor-pointer block">
+                            <div className="border-2 border-dashed border-secondary-300 rounded-xl p-6 text-center hover:border-primary-400 transition-colors">
                                 {selectedFile ? (
-                                    <div>
-                                        <p className="font-medium text-earth-900">
-                                            {selectedFile.name}
-                                        </p>
-                                        <p className="text-sm text-earth-600">
+                                    <div className="space-y-2">
+                                        {filePreview ? (
+                                            /* Image preview */
+                                            <img
+                                                src={filePreview}
+                                                alt="Certificate preview"
+                                                className="max-h-40 mx-auto rounded-lg object-contain border border-secondary-200"
+                                            />
+                                        ) : (
+                                            /* PDF icon */
+                                            <div className="w-16 h-16 bg-red-100 rounded-xl flex items-center justify-center mx-auto">
+                                                <FileText className="w-8 h-8 text-red-600" />
+                                            </div>
+                                        )}
+                                        <p className="font-medium text-earth-900 text-sm">{selectedFile.name}</p>
+                                        <p className="text-xs text-earth-500">
                                             {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
                                         </p>
+                                        <p className="text-xs text-primary-600 underline">Click to change file</p>
                                     </div>
                                 ) : (
                                     <div>
+                                        <div className="flex items-center justify-center gap-3 mb-3">
+                                            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                                                <FileText className="w-5 h-5 text-red-600" />
+                                            </div>
+                                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                                <ImageIcon className="w-5 h-5 text-blue-600" />
+                                            </div>
+                                        </div>
+                                        <Upload className="w-8 h-8 text-primary-400 mx-auto mb-2" />
                                         <p className="font-medium text-earth-900 mb-1">
                                             Click to upload certificate
                                         </p>
-                                        <p className="text-sm text-earth-600">PDF files only</p>
+                                        <p className="text-xs text-earth-500">
+                                            PDF, JPG, PNG, WEBP, HEIC, TIFF, GIF, BMP, SVG — up to 10 MB
+                                        </p>
                                     </div>
                                 )}
-                            </label>
-                        </div>
+                            </div>
+                        </label>
                     </div>
 
                     <Input
@@ -375,6 +447,25 @@ export default function CertificatesPage() {
                             setUploadForm({ ...uploadForm, name: e.target.value })
                         }
                         required
+                    />
+
+                    <Select
+                        label="Certificate Type"
+                        options={[
+                            { value: "USDA Organic", label: "USDA Organic" },
+                            { value: "EU Organic", label: "EU Organic" },
+                            { value: "Ecocert", label: "Ecocert" },
+                            { value: "Fair Trade", label: "Fair Trade" },
+                            { value: "Cosmos Organic", label: "Cosmos Organic" },
+                            { value: "Non-GMO Project", label: "Non-GMO Project" },
+                            { value: "Leaping Bunny", label: "Leaping Bunny" },
+                            { value: "Vegan Society", label: "Vegan Society" },
+                            { value: "Soil Association", label: "Soil Association" },
+                        ]}
+                        value={uploadForm.certificateType}
+                        onChange={(e) =>
+                            setUploadForm({ ...uploadForm, certificateType: e.target.value })
+                        }
                     />
 
                     <Input
@@ -420,15 +511,23 @@ export default function CertificatesPage() {
                             variant="outline"
                             className="flex-1"
                             onClick={() => setIsUploadModalOpen(false)}
+                            disabled={uploading}
                         >
                             Cancel
                         </Button>
                         <Button
                             className="flex-1"
                             onClick={handleUpload}
-                            disabled={!selectedFile || !uploadForm.name}
+                            disabled={!selectedFile || !uploadForm.name || uploading}
                         >
-                            Upload Certificate
+                            {uploading ? (
+                                <span className="flex items-center gap-2">
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Uploading...
+                                </span>
+                            ) : (
+                                "Upload Certificate"
+                            )}
                         </Button>
                     </div>
                 </div>

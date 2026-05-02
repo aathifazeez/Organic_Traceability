@@ -45,6 +45,11 @@ const createBatch = async (req, res) => {
             }));
         }
 
+        // Default dates if not provided
+        const now = new Date();
+        const resolvedHarvestDate = harvestDate || now;
+        const resolvedManufacturingDate = manufacturingDate || now;
+
         // Create batch
         const batch = await IngredientBatch.create({
             batchNumber,
@@ -53,9 +58,10 @@ const createBatch = async (req, res) => {
             commonNames,
             supplier: req.user._id,
             quantity,
+            quantityRemaining: quantity ? { value: quantity.value, unit: quantity.unit } : undefined,
             origin,
-            harvestDate,
-            manufacturingDate,
+            harvestDate: resolvedHarvestDate,
+            manufacturingDate: resolvedManufacturingDate,
             expiryDate,
             certificates,
             qualityGrade,
@@ -523,6 +529,75 @@ const getExpiringBatches = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Assign a certificate to an ingredient batch
+ * @route   PATCH /api/v1/batches/:id/certificates
+ * @access  Private (Supplier - own batch only)
+ */
+const assignCertificate = async (req, res) => {
+    try {
+        const { certificateId } = req.body;
+
+        if (!certificateId) {
+            return errorResponse(res, 'certificateId is required', HTTP_STATUS.BAD_REQUEST);
+        }
+
+        const batch = await IngredientBatch.findById(req.params.id);
+        if (!batch) {
+            return errorResponse(res, 'Batch not found', HTTP_STATUS.NOT_FOUND);
+        }
+
+        if (req.user.role === 'supplier' && batch.supplier.toString() !== req.user._id.toString()) {
+            return errorResponse(res, 'You do not have permission to modify this batch', HTTP_STATUS.FORBIDDEN);
+        }
+
+        const Certificate = require('../models/Certificate');
+        const cert = await Certificate.findById(certificateId);
+        if (!cert) {
+            return errorResponse(res, 'Certificate not found', HTTP_STATUS.NOT_FOUND);
+        }
+
+        // Avoid duplicates
+        if (!batch.certificates.map(c => c.toString()).includes(certificateId.toString())) {
+            batch.certificates.push(certificateId);
+            await batch.save();
+        }
+
+        await batch.populate('certificates supplier');
+
+        return successResponse(res, 'Certificate assigned to batch successfully', { batch });
+    } catch (error) {
+        console.error('Assign certificate error:', error);
+        return errorResponse(res, 'Failed to assign certificate', HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    }
+};
+
+/**
+ * @desc    Remove a certificate from an ingredient batch
+ * @route   DELETE /api/v1/batches/:id/certificates/:certId
+ * @access  Private (Supplier - own batch only)
+ */
+const removeCertificate = async (req, res) => {
+    try {
+        const batch = await IngredientBatch.findById(req.params.id);
+        if (!batch) {
+            return errorResponse(res, 'Batch not found', HTTP_STATUS.NOT_FOUND);
+        }
+
+        if (req.user.role === 'supplier' && batch.supplier.toString() !== req.user._id.toString()) {
+            return errorResponse(res, 'You do not have permission to modify this batch', HTTP_STATUS.FORBIDDEN);
+        }
+
+        batch.certificates = batch.certificates.filter(c => c.toString() !== req.params.certId);
+        await batch.save();
+
+        return successResponse(res, 'Certificate removed from batch');
+    } catch (error) {
+        console.error('Remove certificate error:', error);
+        return errorResponse(res, 'Failed to remove certificate', HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    }
+};
+
 module.exports = {
     createBatch,
     getBatches,
@@ -531,4 +606,6 @@ module.exports = {
     deleteBatch,
     getBatchAnalytics,
     getExpiringBatches,
+    assignCertificate,
+    removeCertificate,
 };

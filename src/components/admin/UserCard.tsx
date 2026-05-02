@@ -1,9 +1,10 @@
 "use client";
 
-import { User, Mail, Calendar, MoreVertical, Check, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { User, Mail, Calendar, MoreVertical, Check, X, Trash2, Ban } from "lucide-react";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface UserCardProps {
     user: {
@@ -17,20 +18,36 @@ interface UserCardProps {
     };
     onApprove?: (id: string) => void;
     onReject?: (id: string) => void;
+    onRemove?: (id: string) => void;
 }
 
-export default function UserCard({ user, onApprove, onReject }: UserCardProps) {
-    const roleColors = {
+export default function UserCard({ user, onApprove, onReject, onRemove }: UserCardProps) {
+    const [menuOpen, setMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setMenuOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const roleColors: Record<string, string> = {
         customer: "bg-blue-100 text-blue-700",
         supplier: "bg-green-100 text-green-700",
         manufacturer: "bg-purple-100 text-purple-700",
         admin: "bg-red-100 text-red-700",
     };
 
-    const statusColors = {
+    const statusColors: Record<string, "success" | "warning" | "danger"> = {
         approved: "success",
+        active: "success",
         pending: "warning",
         rejected: "danger",
+        suspended: "danger",
     };
 
     return (
@@ -54,27 +71,72 @@ export default function UserCard({ user, onApprove, onReject }: UserCardProps) {
                     </div>
                 )}
                 <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-lg text-earth-900 mb-1">
-                        {user.name}
-                    </h3>
+                    <h3 className="font-semibold text-lg text-earth-900 mb-1">{user.name}</h3>
                     <p className="text-sm text-earth-600 flex items-center gap-1">
                         <Mail className="w-4 h-4" />
                         {user.email}
                     </p>
                 </div>
-                <button className="p-2 hover:bg-secondary-100 rounded-lg transition-colors">
-                    <MoreVertical className="w-5 h-5 text-earth-600" />
-                </button>
+
+                {/* 3-dot menu */}
+                <div className="relative" ref={menuRef}>
+                    <button
+                        onClick={() => setMenuOpen((v) => !v)}
+                        className="p-2 hover:bg-secondary-100 rounded-lg transition-colors"
+                    >
+                        <MoreVertical className="w-5 h-5 text-earth-600" />
+                    </button>
+
+                    <AnimatePresence>
+                        {menuOpen && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                                transition={{ duration: 0.15 }}
+                                className="absolute right-0 top-10 z-20 w-44 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden"
+                            >
+                                {user.status !== "rejected" && onReject && (
+                                    <button
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            onReject(user.id);
+                                        }}
+                                        className="flex items-center gap-2.5 w-full px-4 py-3 text-sm text-amber-700 hover:bg-amber-50 transition-colors"
+                                    >
+                                        <Ban className="w-4 h-4" />
+                                        Reject Supplier
+                                    </button>
+                                )}
+                                {onRemove && (
+                                    <button
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            if (confirm(`Are you sure you want to permanently remove ${user.name}?`)) {
+                                                onRemove(user.id);
+                                            }
+                                        }}
+                                        className="flex items-center gap-2.5 w-full px-4 py-3 text-sm text-red-700 hover:bg-red-50 transition-colors border-t border-gray-100"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                        Remove User
+                                    </button>
+                                )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
             </div>
 
             <div className="flex items-center gap-2 mb-4">
                 <div
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${roleColors[user.role as keyof typeof roleColors]
-                        }`}
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        roleColors[user.role] ?? "bg-gray-100 text-gray-700"
+                    }`}
                 >
                     {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                 </div>
-                <Badge variant={statusColors[user.status as keyof typeof statusColors] as any}>
+                <Badge variant={statusColors[user.status] ?? "warning"}>
                     {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
                 </Badge>
             </div>

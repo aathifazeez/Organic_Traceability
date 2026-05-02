@@ -32,14 +32,14 @@ router.use(isAdmin);
 router.get('/approvals/pending', getPendingApprovals);
 
 // User actions
-router.post(
+router.patch(
     '/:id/approve',
     mongoIdValidation('id'),
     validate,
     approveUser
 );
 
-router.post(
+router.patch(
     '/:id/reject',
     mongoIdValidation('id'),
     rejectUserValidation,

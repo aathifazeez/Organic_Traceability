@@ -35,56 +35,53 @@ const createProductBatch = async (req, res) => {
             dermatologistTested,
             storageInstructions,
             tags,
+            isListed,
         } = req.body;
 
-        // Validate ingredients array
-        if (!ingredients || ingredients.length === 0) {
-            return errorResponse(
-                res,
-                'At least one ingredient is required',
-                HTTP_STATUS.BAD_REQUEST
-            );
-        }
+        const ingredientBatches = [];
 
-        // Verify all ingredient batches exist and are available
-        const ingredientBatchIds = ingredients.map(ing => ing.ingredientBatch);
-        const ingredientBatches = await IngredientBatch.find({
-            _id: { $in: ingredientBatchIds },
-            status: BATCH_STATUS.ACTIVE,
-        }).populate('supplier certificates');
+        if (ingredients && ingredients.length > 0) {
+            // Verify all ingredient batches exist and are available
+            const ingredientBatchIds = ingredients.map(ing => ing.ingredientBatch);
+            const found = await IngredientBatch.find({
+                _id: { $in: ingredientBatchIds },
+                status: BATCH_STATUS.ACTIVE,
+            }).populate('supplier certificates');
 
-        if (ingredientBatches.length !== ingredientBatchIds.length) {
-            return errorResponse(
-                res,
-                'One or more ingredient batches not found or inactive',
-                HTTP_STATUS.BAD_REQUEST
-            );
-        }
-
-        // Validate ingredient quantities
-        for (const ingredient of ingredients) {
-            const batch = ingredientBatches.find(
-                b => b._id.toString() === ingredient.ingredientBatch.toString()
-            );
-
-            if (!batch) continue;
-
-            // Check if enough quantity is available
-            if (batch.quantityRemaining.value < ingredient.quantityUsed.value) {
+            if (found.length !== ingredientBatchIds.length) {
                 return errorResponse(
                     res,
-                    `Insufficient quantity for ingredient: ${batch.ingredientName}`,
+                    'One or more ingredient batches not found or inactive',
                     HTTP_STATUS.BAD_REQUEST
                 );
             }
 
-            // Check unit compatibility
-            if (batch.quantityRemaining.unit !== ingredient.quantityUsed.unit) {
-                return errorResponse(
-                    res,
-                    `Unit mismatch for ingredient: ${batch.ingredientName}`,
-                    HTTP_STATUS.BAD_REQUEST
+            ingredientBatches.push(...found);
+
+            // Validate ingredient quantities
+            for (const ingredient of ingredients) {
+                const batch = ingredientBatches.find(
+                    b => b._id.toString() === ingredient.ingredientBatch.toString()
                 );
+
+                if (!batch) continue;
+
+                if (batch.quantityRemaining.value < ingredient.quantityUsed.value) {
+                    return errorResponse(
+                        res,
+                        `Insufficient quantity for ingredient: ${batch.ingredientName}`,
+                        HTTP_STATUS.BAD_REQUEST
+                    );
+                }
+
+                // Check unit compatibility
+                if (batch.quantityRemaining.unit !== ingredient.quantityUsed.unit) {
+                    return errorResponse(
+                        res,
+                        `Unit mismatch for ingredient: ${batch.ingredientName}`,
+                        HTTP_STATUS.BAD_REQUEST
+                    );
+                }
             }
         }
 
@@ -111,11 +108,12 @@ const createProductBatch = async (req, res) => {
             shortDescription,
             longDescription,
             manufacturer: req.user._id,
-            ingredients,
-            productionDate,
+            ingredients: ingredients || [],
+            productionDate: productionDate || new Date(),
             expiryDate,
-            totalUnits,
-            unitSize,
+            totalUnits: parseInt(totalUnits) || 1,
+            unitsRemaining: parseInt(totalUnits) || 1,
+            unitSize: unitSize || { value: 50, unit: 'ml' },
             manufacturingCost,
             retailPrice,
             images,
@@ -129,10 +127,12 @@ const createProductBatch = async (req, res) => {
             dermatologistTested: dermatologistTested === 'true' || dermatologistTested === true,
             storageInstructions,
             tags,
+            isListed: isListed === true || isListed === 'true',
+            listedAt: (isListed === true || isListed === 'true') ? new Date() : undefined,
         });
 
         // Reduce ingredient batch quantities
-        for (const ingredient of ingredients) {
+        for (const ingredient of (ingredients || [])) {
             const batch = await IngredientBatch.findById(ingredient.ingredientBatch);
             if (batch) {
                 await batch.reduceQuantity(
@@ -382,6 +382,7 @@ const updateProductBatch = async (req, res) => {
             'storageInstructions',
             'tags',
             'notes',
+            'images',
         ];
 
         const updates = {};

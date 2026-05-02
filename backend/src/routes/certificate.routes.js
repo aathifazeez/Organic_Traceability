@@ -9,10 +9,13 @@ const {
     deleteCertificate,
     getCertificateAnalytics,
     getExpiringCertificates,
+    verifyCertificate,
+    rejectCertificate,
+    getPendingCount,
 } = require('../controllers/certificateController');
 
 const { authenticate } = require('../middleware/auth.middleware');
-const { isSupplier, authorize } = require('../middleware/role.middleware');
+const { isSupplier, isAdmin, authorize } = require('../middleware/role.middleware');
 const validate = require('../middleware/validation.middleware');
 const upload = require('../config/multer');
 
@@ -24,9 +27,10 @@ const {
 // All routes require authentication
 router.use(authenticate);
 
-// Analytics routes (must be before :id routes)
+// Analytics & special routes (must be before :id routes)
 router.get('/analytics/summary', isSupplier, getCertificateAnalytics);
 router.get('/expiring', getExpiringCertificates);
+router.get('/pending/count', isAdmin, getPendingCount);
 
 // CRUD routes
 router.post(
@@ -63,5 +67,9 @@ router.delete(
     validate,
     deleteCertificate
 );
+
+// Admin verification routes
+router.patch('/:id/verify', isAdmin, mongoIdValidation('id'), validate, verifyCertificate);
+router.patch('/:id/reject', isAdmin, mongoIdValidation('id'), validate, rejectCertificate);
 
 module.exports = router;

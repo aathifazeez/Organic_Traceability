@@ -296,10 +296,3 @@ export const TESTIMONIALS = [
     },
 ];
 
-// Stats for Homepage
-export const PLATFORM_STATS = [
-    { label: "Products Verified", value: "10,000+", icon: "Package" },
-    { label: "Certified Suppliers", value: "500+", icon: "Users" },
-    { label: "Countries", value: "50+", icon: "Globe" },
-    { label: "Traceability Rate", value: "99.9%", icon: "Shield" },
-];

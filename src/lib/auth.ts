@@ -1,148 +1,103 @@
-// Authentication utilities and mock user data
+// Authentication utilities - Connected to real backend API
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 
 export interface User {
   id: string;
   email: string;
-  password: string;
   role: "supplier" | "admin";
   name: string;
   status: "pending" | "approved" | "rejected";
+  companyName?: string;
   companyInfo?: string;
+  avatar?: string;
   createdAt: string;
 }
 
-// Mock users database - UPDATED: Only 2 roles now
-const mockUsers: User[] = [
-  {
-    id: "1",
-    email: "supplier@organictrace.com",
-    password: "supplier123",
-    role: "supplier",
-    name: "Natural Oils Co.",
-    status: "approved",
-    companyInfo: "Supplier of organic essential oils",
-    createdAt: "2024-01-01",
-  },
-  {
-    id: "2",
-    email: "admin@organictrace.com",
-    password: "admin123",
-    role: "admin",
-    name: "OrganicTrace Admin",
-    status: "approved",
-    companyInfo: "Platform Administrator & Manufacturer",
-    createdAt: "2024-01-01",
-  },
-  // Additional test suppliers
-  {
-    id: "3",
-    email: "supplier2@organictrace.com",
-    password: "supplier123",
-    role: "supplier",
-    name: "Atlas Organic Oils",
-    status: "approved",
-    companyInfo: "Premium organic oils from Morocco",
-    createdAt: "2024-01-05",
-  },
-  {
-    id: "4",
-    email: "supplier3@organictrace.com",
-    password: "supplier123",
-    role: "supplier",
-    name: "Fair Trade Shea Co.",
-    status: "pending",
-    companyInfo: "Fair trade shea butter supplier",
-    createdAt: "2024-01-29",
-  },
-];
-
-// Pending registrations (for approval workflow)
-let pendingRegistrations: User[] = [];
+export interface AuthToken {
+  token: string;
+  refreshToken?: string;
+}
 
 /**
- * Login function
- * @param email - User email
- * @param password - User password
- * @returns Success status and user data or error
+ * Login function - connects to backend API
  */
-export const login = (
+export const login = async (
   email: string,
   password: string
-): { success: boolean; user?: User; error?: string } => {
-  const user = mockUsers.find(
-    (u) => u.email === email && u.password === password
-  );
+): Promise<{ success: boolean; user?: User; token?: string; error?: string }> => {
+  try {
+    const res = await fetch(`${API_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
 
-  if (!user) {
-    return { success: false, error: "Invalid email or password" };
+    const data = await res.json();
+
+    if (data.success && data.data) {
+      const userData: User = {
+        id: data.data.user.id || data.data.user._id,
+        email: data.data.user.email,
+        role: data.data.user.role,
+        name: data.data.user.name,
+        status: data.data.user.status,
+        companyName: data.data.user.companyName,
+        companyInfo: data.data.user.companyInfo,
+        avatar: data.data.user.avatar,
+        createdAt: data.data.user.createdAt,
+      };
+
+      return {
+        success: true,
+        user: userData,
+        token: data.data.accessToken,
+      };
+    }
+
+    return { success: false, error: data.message || "Login failed" };
+  } catch (error) {
+    console.error("Login error:", error);
+    return { success: false, error: "Unable to connect to server. Please try again." };
   }
-
-  if (user.status === "pending") {
-    return {
-      success: false,
-      error: "Your account is pending approval. Please wait for admin confirmation.",
-    };
-  }
-
-  if (user.status === "rejected") {
-    return {
-      success: false,
-      error: "Your account has been rejected. Please contact support.",
-    };
-  }
-
-  // Remove password from returned user object
-  const { password: _, ...userWithoutPassword } = user;
-
-  return { success: true, user: userWithoutPassword as User };
 };
 
 /**
- * Register new user (only suppliers can register publicly)
- * @param data - Registration data
- * @returns Success status and user data or error
+ * Register new supplier
  */
-export const register = (data: {
+export const register = async (data: {
   email: string;
   password: string;
   name: string;
-  role: "supplier"; // Only supplier registration allowed
+  role: "supplier";
+  companyName?: string;
   companyInfo?: string;
-}): { success: boolean; user?: User; error?: string } => {
-  // Check if email already exists
-  const existingUser = mockUsers.find((u) => u.email === data.email);
-  if (existingUser) {
-    return { success: false, error: "Email already registered" };
+}): Promise<{ success: boolean; user?: User; error?: string }> => {
+  try {
+    const res = await fetch(`${API_URL}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    const result = await res.json();
+
+    if (result.success && result.data) {
+      return {
+        success: true,
+        user: result.data.user,
+      };
+    }
+
+    return { success: false, error: result.message || "Registration failed" };
+  } catch (error) {
+    console.error("Register error:", error);
+    return { success: false, error: "Unable to connect to server. Please try again." };
   }
-
-  // Create new user with pending status
-  const newUser: User = {
-    id: Date.now().toString(),
-    email: data.email,
-    password: data.password,
-    role: data.role,
-    name: data.name,
-    status: "pending", // All new suppliers need admin approval
-    companyInfo: data.companyInfo,
-    createdAt: new Date().toISOString(),
-  };
-
-  // Add to pending registrations
-  pendingRegistrations.push(newUser);
-
-  // In production, this would be saved to database
-  // For now, we'll also add to mockUsers with pending status
-  mockUsers.push(newUser);
-
-  const { password: _, ...userWithoutPassword } = newUser;
-
-  return { success: true, user: userWithoutPassword as User };
 };
 
 /**
  * Password validation
- * @param password - Password to validate
- * @returns Validation result with errors
  */
 export const validatePassword = (
   password: string
@@ -173,8 +128,6 @@ export const validatePassword = (
 
 /**
  * Email validation
- * @param email - Email to validate
- * @returns Boolean indicating if email is valid
  */
 export const validateEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -183,8 +136,6 @@ export const validateEmail = (email: string): boolean => {
 
 /**
  * Get role-based redirect URL
- * @param role - User role
- * @returns Dashboard URL for the role
  */
 export const getRoleRedirect = (role: string): string => {
   switch (role) {
@@ -198,8 +149,7 @@ export const getRoleRedirect = (role: string): string => {
 };
 
 /**
- * Get current user from localStorage (mock implementation)
- * In production, this would validate JWT token
+ * Get current user from localStorage
  */
 export const getCurrentUser = (): User | null => {
   if (typeof window === "undefined") return null;
@@ -215,12 +165,22 @@ export const getCurrentUser = (): User | null => {
 };
 
 /**
- * Save current user to localStorage (mock implementation)
- * In production, this would store JWT token
+ * Get auth token from localStorage
  */
-export const saveCurrentUser = (user: User): void => {
+export const getAuthToken = (): string | null => {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("authToken");
+};
+
+/**
+ * Save current user and token to localStorage
+ */
+export const saveCurrentUser = (user: User, token?: string): void => {
   if (typeof window === "undefined") return;
   localStorage.setItem("currentUser", JSON.stringify(user));
+  if (token) {
+    localStorage.setItem("authToken", token);
+  }
 };
 
 /**
@@ -229,13 +189,14 @@ export const saveCurrentUser = (user: User): void => {
 export const logout = (): void => {
   if (typeof window === "undefined") return;
   localStorage.removeItem("currentUser");
+  localStorage.removeItem("authToken");
 };
 
 /**
  * Check if user is authenticated
  */
 export const isAuthenticated = (): boolean => {
-  return getCurrentUser() !== null;
+  return getCurrentUser() !== null && getAuthToken() !== null;
 };
 
 /**
@@ -247,132 +208,179 @@ export const hasRole = (role: string): boolean => {
 };
 
 /**
- * Get pending registrations (for admin)
+ * Make an authenticated API request
  */
-export const getPendingRegistrations = (): User[] => {
-  return mockUsers.filter((u) => u.status === "pending");
-};
+export const apiRequest = async (
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<any> => {
+  const token = getAuthToken();
 
-/**
- * Approve user registration (admin only)
- */
-export const approveUser = (userId: string): { success: boolean; error?: string } => {
-  const user = mockUsers.find((u) => u.id === userId);
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options.headers as Record<string, string>),
+  };
 
-  if (!user) {
-    return { success: false, error: "User not found" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
-  user.status = "approved";
-  return { success: true };
-};
+  const res = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
 
-/**
- * Reject user registration (admin only)
- */
-export const rejectUser = (userId: string): { success: boolean; error?: string } => {
-  const user = mockUsers.find((u) => u.id === userId);
+  const data = await res.json();
 
-  if (!user) {
-    return { success: false, error: "User not found" };
+  // If token expired, logout
+  if (res.status === 401) {
+    logout();
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
   }
 
-  user.status = "rejected";
-  return { success: true };
+  return data;
 };
 
 /**
- * Get all users (admin only)
+ * Get pending registrations (admin)
  */
-export const getAllUsers = (): User[] => {
-  return mockUsers.map(({ password, ...user }) => user as User);
+export const getPendingRegistrations = async (): Promise<User[]> => {
+  try {
+    const data = await apiRequest("/users?status=pending");
+    return data.data || [];
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * Approve user registration (admin)
+ */
+export const approveUser = async (
+  userId: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const data = await apiRequest(`/users/${userId}/approve`, {
+      method: "PATCH",
+    });
+    return { success: data.success };
+  } catch {
+    return { success: false, error: "Failed to approve user" };
+  }
+};
+
+/**
+ * Reject user registration (admin)
+ */
+export const rejectUser = async (
+  userId: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const data = await apiRequest(`/users/${userId}/reject`, {
+      method: "PATCH",
+    });
+    return { success: data.success };
+  } catch {
+    return { success: false, error: "Failed to reject user" };
+  }
+};
+
+/**
+ * Get all users (admin)
+ */
+export const getAllUsers = async (): Promise<User[]> => {
+  try {
+    const data = await apiRequest("/users");
+    return data.data || [];
+  } catch {
+    return [];
+  }
 };
 
 /**
  * Password reset request
  */
-export const requestPasswordReset = (
+export const requestPasswordReset = async (
   email: string
-): { success: boolean; error?: string } => {
-  const user = mockUsers.find((u) => u.email === email);
-
-  if (!user) {
-    // Don't reveal if email exists for security
-    return { success: true };
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const res = await fetch(`${API_URL}/auth/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    return { success: data.success };
+  } catch {
+    return { success: true }; // Don't reveal errors for security
   }
-
-  // In production, send email with reset link
-  console.log(`Password reset requested for: ${email}`);
-
-  return { success: true };
 };
 
 /**
  * Reset password with token
  */
-export const resetPassword = (
+export const resetPassword = async (
   token: string,
   newPassword: string
-): { success: boolean; error?: string } => {
+): Promise<{ success: boolean; error?: string }> => {
   const passwordValidation = validatePassword(newPassword);
-
   if (!passwordValidation.isValid) {
     return { success: false, error: passwordValidation.errors[0] };
   }
 
-  // In production, validate token and update password
-  console.log(`Password reset with token: ${token}`);
-
-  return { success: true };
+  try {
+    const res = await fetch(`${API_URL}/auth/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, newPassword }),
+    });
+    const data = await res.json();
+    return { success: data.success, error: data.message };
+  } catch {
+    return { success: false, error: "Failed to reset password" };
+  }
 };
 
 /**
  * Update user profile
  */
-export const updateProfile = (
+export const updateProfile = async (
   userId: string,
-  data: Partial<User>
-): { success: boolean; user?: User; error?: string } => {
-  const user = mockUsers.find((u) => u.id === userId);
-
-  if (!user) {
-    return { success: false, error: "User not found" };
+  profileData: Partial<User>
+): Promise<{ success: boolean; user?: User; error?: string }> => {
+  try {
+    const data = await apiRequest(`/users/${userId}`, {
+      method: "PUT",
+      body: JSON.stringify(profileData),
+    });
+    return { success: data.success, user: data.data?.user };
+  } catch {
+    return { success: false, error: "Failed to update profile" };
   }
-
-  // Update allowed fields
-  if (data.name) user.name = data.name;
-  if (data.companyInfo) user.companyInfo = data.companyInfo;
-
-  const { password: _, ...userWithoutPassword } = user;
-
-  return { success: true, user: userWithoutPassword as User };
 };
 
 /**
  * Change password
  */
-export const changePassword = (
+export const changePassword = async (
   userId: string,
   currentPassword: string,
   newPassword: string
-): { success: boolean; error?: string } => {
-  const user = mockUsers.find((u) => u.id === userId);
-
-  if (!user) {
-    return { success: false, error: "User not found" };
-  }
-
-  if (user.password !== currentPassword) {
-    return { success: false, error: "Current password is incorrect" };
-  }
-
+): Promise<{ success: boolean; error?: string }> => {
   const passwordValidation = validatePassword(newPassword);
-
   if (!passwordValidation.isValid) {
     return { success: false, error: passwordValidation.errors[0] };
   }
 
-  user.password = newPassword;
-
-  return { success: true };
+  try {
+    const data = await apiRequest("/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    return { success: data.success, error: data.message };
+  } catch {
+    return { success: false, error: "Failed to change password" };
+  }
 };

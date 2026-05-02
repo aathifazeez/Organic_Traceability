@@ -80,11 +80,11 @@ export default function CartItem({
                             {/* Price */}
                             <div className="flex items-center gap-3 mb-4">
                                 <span className="text-2xl font-bold text-earth-900">
-                                    ${item.price}
+                                    LKR {item.price.toLocaleString()}
                                 </span>
                                 {item.originalPrice && (
                                     <span className="text-sm text-earth-500 line-through">
-                                        ${item.originalPrice}
+                                        LKR {item.originalPrice.toLocaleString()}
                                     </span>
                                 )}
                             </div>
@@ -128,7 +128,7 @@ export default function CartItem({
                         <div className="text-right">
                             <p className="text-sm text-earth-600 mb-1">Subtotal</p>
                             <p className="text-2xl font-bold text-primary-600">
-                                ${(item.price * item.quantity).toFixed(2)}
+                                LKR {(item.price * item.quantity).toLocaleString()}
                             </p>
                         </div>
                     </div>

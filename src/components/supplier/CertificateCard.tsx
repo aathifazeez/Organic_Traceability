@@ -10,6 +10,7 @@ import {
     Trash2,
     AlertCircle,
     CheckCircle,
+    Image as ImageIcon,
 } from "lucide-react";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -22,6 +23,7 @@ interface CertificateCardProps {
         name: string;
         fileUrl: string;
         fileName: string;
+        documentType?: string;
         issuedBy: string;
         issuedDate: string;
         expiryDate: string;
@@ -39,6 +41,8 @@ export default function CertificateCard({
 }: CertificateCardProps) {
     const status = getCertificateStatus(certificate.expiryDate);
     const [isHovered, setIsHovered] = useState(false);
+    const isImage = certificate.documentType?.startsWith("image/") ||
+        /\.(jpg|jpeg|png|webp|gif|bmp|tiff|tif|heic|heif|svg)$/i.test(certificate.fileName || "");
 
     const StatusIcon = status.status === "expired" ? AlertCircle : CheckCircle;
 
@@ -54,22 +58,39 @@ export default function CertificateCard({
         >
             {/* Header */}
             <div className="flex items-start gap-4 mb-4">
-                <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${status.status === "expired"
-                            ? "bg-red-100"
-                            : status.status === "expiring"
-                                ? "bg-amber-100"
-                                : "bg-green-100"
-                        }`}
-                >
-                    <FileText
-                        className={`w-6 h-6 ${status.status === "expired"
-                                ? "text-red-600"
-                                : status.status === "expiring"
-                                    ? "text-amber-600"
-                                    : "text-green-600"
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden bg-secondary-100 border border-secondary-200">
+                    {isImage && certificate.fileUrl ? (
+                        <img
+                            src={certificate.fileUrl}
+                            alt={certificate.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = "none";
+                            }}
+                        />
+                    ) : isImage ? (
+                        <ImageIcon className="w-6 h-6 text-blue-500" />
+                    ) : (
+                        <div
+                            className={`w-full h-full flex items-center justify-center ${
+                                status.status === "expired"
+                                    ? "bg-red-100"
+                                    : status.status === "expiring"
+                                    ? "bg-amber-100"
+                                    : "bg-green-100"
                             }`}
-                    />
+                        >
+                            <FileText
+                                className={`w-6 h-6 ${
+                                    status.status === "expired"
+                                        ? "text-red-600"
+                                        : status.status === "expiring"
+                                        ? "text-amber-600"
+                                        : "text-green-600"
+                                }`}
+                            />
+                        </div>
+                    )}
                 </div>
                 <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-lg text-earth-900 mb-1 truncate">
