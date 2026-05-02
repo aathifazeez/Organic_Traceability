@@ -1,10 +1,17 @@
 require('dotenv').config();
-const app = require('./src/app');
+const appModule = require('./src/app');
 const connectDB = require('./src/config/database');
 const { initScheduledJobs } = require('./src/services/scheduledJobs');
 
 const PORT = process.env.PORT || 5001;
 const NODE_ENV = process.env.NODE_ENV || 'development';
+const app = appModule?.default || appModule;
+
+if (!app || typeof app.listen !== 'function') {
+    throw new TypeError(
+        'Invalid Express app export from ./src/app. Expected an Express app instance with listen().'
+    );
+}
 
 // Connect to MongoDB
 connectDB();
