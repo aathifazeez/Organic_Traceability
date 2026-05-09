@@ -8,7 +8,7 @@ import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import Link from "next/link";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "/_/backend/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 
 function getFallbackImage(name: string): string {
     const n = (name || "").toLowerCase();

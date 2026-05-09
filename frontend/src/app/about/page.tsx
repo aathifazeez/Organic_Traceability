@@ -20,8 +20,8 @@ import {
 } from "lucide-react";
 import Card from "@/components/ui/Card";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "/_/backend/api/v1";
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "/_/backend";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001";
 
 const IMAGE_TYPES = [
     "image/jpeg",

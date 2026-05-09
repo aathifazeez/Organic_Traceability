@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { CheckCircle2, XCircle, Loader2, ShieldCheck } from "lucide-react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "/_/backend/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 
 interface Certificate {
     type: string;

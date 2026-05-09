@@ -22,8 +22,8 @@ import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { apiRequest, getAuthToken } from "@/lib/auth";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "/_/backend/api/v1";
-const SERVER_URL = (process.env.NEXT_PUBLIC_API_URL || "/_/backend/api/v1").replace("/api/v1", "");
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+const SERVER_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1").replace("/api/v1", "");
 
 export default function CertificatesPage() {
     const [certificates, setCertificates] = useState<any[]>([]);

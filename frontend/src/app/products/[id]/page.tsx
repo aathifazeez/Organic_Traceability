@@ -26,7 +26,7 @@ import Link from "next/link";
 import { addToCart } from "@/lib/cart";
 import { getProductBySlug, isStaticSlug } from "@/lib/products.config";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "/_/backend/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 
 // Pick the right fallback image based on product name
 function getFallbackImage(name: string): string {
